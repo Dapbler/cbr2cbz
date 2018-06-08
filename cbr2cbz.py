@@ -6,17 +6,20 @@ Requires system commands: unrar, zip
 """
 # Usage string used by optparse in main(), but it seems a shame to double up on documentation text
 usage = """
- Use 1 - single file:      %prog [options] <source file> <output directory>
- Use 2 - folder contents:  %prog [options] <source directory> <output directory>
+ Use 1 - single file:      %(prog) [options] <source file> <output directory>
+ Use 2 - folder contents:  %(prog) [options] <source directory> <output directory>
 
 By default only *.CBR (case insensitive) are processed into CBZ. CBZ may optionally be repacked.
 With -c (copy) mode other files will be copied.
 Output format for CBR to CBZ conversion is uncompressed zip (recommended for ComicRack on Android)"""
+description="Converts CBR archives to CBZ"
 import os
 import sys
 import re
 import shutil
-from optparse import OptionParser
+# argparse requires 3.2 and up
+import argparse
+#from optparse import OptionParser
 # Subprocess for external unrar command
 import subprocess
 import zipfile
@@ -191,21 +194,23 @@ def cbr2cbz(infile, outfile,verbose=0,whatif=False):
 				
 def main():
 
-	parser = OptionParser(usage=usage)
-	parser.usage=usage
-	parser.add_option("-c","--copy",default=False,action="store_true", dest="copy",help="copy non CBR files to destination")
-	parser.add_option("-z","--zipforce",default=False,action="store_true", dest="zipforce",help="re-zip CBZ archives (remove wasteful compression)")
-	parser.add_option("-f","--flat",default=False,action="store_true", dest="flat",help="Flat mode - do not create output subdirectories")
-	parser.add_option("-m","--match",default=0,action="store", type="string",dest="match",help="only process paths matching Regular Expression")
-	parser.add_option("-e","--exclude",default=False,action="store_true", dest="exclude",help="invert RE matching - exclude matches")
-	parser.add_option("-i","--ignorecase",default=False,action="store_true", dest="ignorecase",help="ignore case in RE matching -m")
-	parser.add_option("-v","--verbose",default=0,action="count", dest="verbose",help="print additional information (multiple accepted eg. -vvv)")
-	parser.add_option("-w","--whatif",default=False,action="store_true", dest="whatif",help="test mode - no action")
-	(options,args) = parser.parse_args()
+	parser = argparse.ArgumentParser(description=description)
+	#parser.usage=usage
+	parser.add_argument("-c","--copy",default=False,action="store_true", dest="copy",help="copy non CBR files to destination")
+	parser.add_argument("-z","--zipforce",default=False,action="store_true", dest="zipforce",help="re-zip CBZ archives (remove wasteful compression)")
+	parser.add_argument("-f","--flat",default=False,action="store_true", dest="flat",help="Flat mode - do not create output subdirectories")
+	parser.add_argument("-m","--match",default=[],action="append", dest="match",help="only process paths matching Regular Expression")
+	parser.add_argument("-e","--exclude",default=[],action="append", dest="exclude",help="exclude source files matching Regular Expression")
+	parser.add_argument("-i","--ignorecase",default=False,action="store_true", dest="ignorecase",help="ignore case in RE matching -m")
+	parser.add_argument("-v","--verbose",default=0,action="count", dest="verbose",help="print additional information (multiple accepted eg. -vvv)")
+	parser.add_argument("-w","--whatif",default=False,action="store_true", dest="whatif",help="test mode - no action")
+	parser.add_argument('source',help="source file or directory")
+	parser.add_argument('dest',help="destination directory")
+	options = parser.parse_args()
 		
 	if options.verbose>1:
 		print ("** Options:",str(options))
-		print("** Arguments", args)
+		#print("** Arguments", args)
 			
 	if options.whatif:
 		print("Running in test (WHATIF) mode")
@@ -215,23 +220,9 @@ def main():
 		CBxMatch='\.[Cc][bB][rRzZ]$'
 	else:
 		CBxMatch='\.[Cc][bB][rR]$'
-	
-	if options.match :
-		if options.ignorecase:
-			options.match=re.compile(options.match, re.I)
-		#else:
-		#	match=options.match
-	#else:
-	#		match='' # Flag to skip match
 
-	if len(args)==2 :
-		source= os.path.abspath(os.path.expanduser(args[0]))
-		dest= os.path.abspath(os.path.expanduser(args[1]))
-		if options.verbose>0:
-			print("* Source: {0}, Destination: {1}".format(source,dest))
-	else:
-		parser.print_help()
-		exit("Execution cancelled: Requires two positional arguments (source and destination)")
+	source= os.path.abspath(os.path.expanduser(options.source))
+	dest= os.path.abspath(os.path.expanduser(options.dest))
 
 	if source == dest:
 		exit("Source = dest {0}".format(source))
@@ -245,7 +236,7 @@ def main():
 		
 	if os.path.isfile(source):
 		# Change around options to handle single file
-		options.match="{0}$".format(re.escape(os.path.basename(source)))
+		options.match=["{0}$".format(re.escape(os.path.basename(source)))]
 		#options.match=True
 		# options.copy=True # This'll almost always be the required option, make it default?
 		source=os.path.dirname(source)
@@ -282,18 +273,47 @@ def main():
 		
 		for leaf in files:
 			infile= os.path.join(root,leaf)
+			
+			if options.verbose>2:
+				print ("*** File: {0}".format(leaf))
+				
 			# Continue if excluded by match
 			# xor is picky about types so force re.search result into boolean
-			if (options.match) and not (options.exclude ^ (re.search(options.match,infile)!=None)):
+			if options.match :
+				matchflag=False
+				for m in options.match:
+					if options.ignorecase:
+						matcher=re.compile(m, re.I)
+					else:
+						matcher=m
+					if re.search(matcher,infile)!=None:
+						matchflag=True
+						break
+			else:
+				matchflag=True
+
+				
+			if options.exclude and matchflag:
+				for m in options.exclude:
+					if options.ignorecase:
+						matcher=re.compile(m, re.I)
+					else:
+						matcher=m
+					if re.search(matcher,infile)!=None:
+						matchflag=False
+						break
+			
+			if options.verbose > 4:
+				print("***** Matchflag: {0}".format(matchflag))
+					
+			if not matchflag:
 				# Excluded 
 				if options.verbose>0:
 					print("* ResultExcluded: {0}".format(infile))
 				rescount["excluded"] += 1
 				continue
 			
-			if options.verbose>2:
-				print ("*** File: {0}".format(leaf))
-								
+				
 			# Check CBR
 			isCBx=re.search(CBxMatch,leaf)
 			if not(isCBx or options.copy):
