@@ -190,6 +190,14 @@ def cbr2cbz(infile, outfile,verbose=0,shrink=False,forceshrink=False,whatif=Fals
 						print("**** ERROR: Could not extract image sizes")
 					continue
 				
+				# Check for a name clash
+				# This would happen with archive files which only differ by extension
+				# eg. file1.png, file1.jpg - when file1.png is shrunk
+				if imgext!='jpg' and os.path.exists(shrinkfile.replace(imgext,"jpg")):
+					if verbose>0:
+						print("* WARNING: Shrink filename clash: {0} -> {1}",shrinkfile, leaf.replace(imgext,"jpg"))
+					continue # Don't attempt shrinking this file as we can't rename it
+				
 				# We expect wider pages to be larger so our allowance is based on the aspect ratio (imgar)
 				# If a page is less than 450KB x imgar keep the original to preserve quality
 				# If over that, or we're forcing shrink attempt shrinking
@@ -235,12 +243,6 @@ def cbr2cbz(infile, outfile,verbose=0,shrink=False,forceshrink=False,whatif=Fals
 					newsize=os.stat(shrinkfile+".shrink.jpg").st_size
 					if oldsize>newsize:
 						os.unlink(shrinkfile) # Not necessary on POSIX
-						if os.path.exists(shrinkfile.replace(imgext,"jpg")):
-							# Oops, there's already a file of the output name.
-							# This would happen with archive files which only differ by extension
-							# eg. file1.png, file1.jpg - when file1.png is shrunk
-							if verbose>0:
-								print("* ERROR: Shrink filename clash: {0} -> {1}",shrinkfile, leaf.replace(imgext,"jpg") )
 						os.rename(shrinkfile+".shrink.jpg",shrinkfile.replace(imgext,"jpg"))
 						if verbose>2:
 							print("*** Shrank    {0} : {1}/{2} {3}".format(leaf, newsize, oldsize, round(newsize/oldsize,2)))
