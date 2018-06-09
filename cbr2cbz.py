@@ -241,9 +241,13 @@ def cbr2cbz(infile, outfile,verbose=0,shrink=False,forceshrink=False,whatif=Fals
 					# Do a check the new file is smaller before replacing
 					oldsize=os.stat(shrinkfile).st_size
 					newsize=os.stat(shrinkfile+".shrink.jpg").st_size
-					if oldsize>newsize:
+					if (oldsize*0.9)>newsize:
 						os.unlink(shrinkfile) # Not necessary on POSIX
-						os.rename(shrinkfile+".shrink.jpg",shrinkfile.replace(imgext,"jpg"))
+						if imgext=="":
+							newname=shrinkfile+".jpg"
+						else:
+							newname=re.sub("\."+re.escape(imgext)+"$",".jpg",shrinkfile)
+						os.rename(shrinkfile+".shrink.jpg",newname)
 						if verbose>2:
 							print("*** Shrank    {0} : {1}/{2} {3}".format(leaf, newsize, oldsize, round(newsize/oldsize,2)))
 					else:
