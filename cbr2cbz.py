@@ -141,29 +141,34 @@ def cbr2cbz(infile, outfile,verbose=0,shrink=False,forceshrink=False,whatif=Fals
 		# End if is_zipfile() unrar method
 			
 	if shrink or forceshrink:
+		if verbose>1:
+			print("** Shrinking {0}".format(infile))
 		for root,dirs,files in os.walk(cbr2cbztemp):
-			if verbose>3:
-				print("**** Adding zip directory : {0} - files:{1} ".format(root,len(files)))
+			dirs.sort()
+			files.sort()
 			if len(files) > 0:
 				for leaf in files:
-					shrinkfile=os.path.join(root,leaf)
-					subcom=["identify", "-precision", "16", "-format", '%b %e %m %W %H', shrinkfile]
 					if verbose>3:
-						print ("** {0}".format(subcom))
+						print ("*** Assessing {0}".format(leaf))
+					shrinkfile=os.path.join(root,leaf)
+					subcom=["identify", "-precision", "16", "-format", '%b %e %m %W %H', "-quiet", shrinkfile]
+					if verbose>4:
+						print ("***** {0}".format(subcom))
 					try:
 						output=subprocess.check_output(subcom)
 					except subprocess.CalledProcessError as e:
 						output=e.output
-						print("ERROR: CalledProcessError: identify {0}".format(infile))
-						if verbose > 0:
+						if verbose>3:
+							print("**** ERROR: CalledProcessError: identify {0}".format(leaf))
 							try:
 								output=output.decode("UTF-8","ignore")
+								print ("**** {0}".format(output))
 							except:
 								print(format(sys.exc_info()[0]))
-							print ("* {0}".format(output))
 						continue
 					except:
-						print("ERROR: Could not get image information on {0}".format(shrinkfile))
+						if verbose>3:
+							print("**** ERROR: Could not get image information on {0}".format(leaf))
 						continue
 					
 					# Extract image stats
@@ -174,49 +179,63 @@ def cbr2cbz(infile, outfile,verbose=0,shrink=False,forceshrink=False,whatif=Fals
 						imgx=int(imgx)
 						imgy=int(imgy)
 						imgar=imgx/imgy
-						if verbose>3:
-							print("Imagestats:",imgsize,imgext,imgtype,imgx,imgy,imgar)
+						if verbose>4:
+							print("***** Imagestats:",imgsize,imgext,imgtype,imgx,imgy,imgar)
 					except:
-						print("Output: {0}".format(output))
-						print(format(sys.exc_info()[0]))
-						print("ERROR: Could not extract image sizes")
+						if verbose>3:
+							print("**** Output: {0}".format(output))
+							print(format(sys.exc_info()[0]))
+							print("**** ERROR: Could not extract image sizes")
 						continue
 					
-					if ((imgtype=='JPEG' or imgtype=='PNG') and imgsize>(imgar*600000)) or forceshrink:
+					if ((imgtype=='JPEG' or imgtype=='PNG') and imgsize>(imgar*500000)) or forceshrink:
 						subcom=["convert",shrinkfile,"-quality", '40', "-resize", "x1500>",shrinkfile+".shrink.jpg"]
-						if verbose>3:
-							print ("** {0}".format(subcom))
+						if verbose>4:
+							print ("***** {0}".format(subcom))
 						try:
+							# Call convert
 							output=subprocess.check_output(subcom)
 						except subprocess.CalledProcessError as e:
 							output=e.output
-							print("ERROR: CalledProcessError: convert {0}".format(shrinkfile))
-							if verbose > 0:
+							if verbose>4:
+								print("***** ERROR: CalledProcessError: convert {0}".format(shrinkfile))
 								try:
 									output=output.decode("UTF-8","ignore")
 								except:
 									print(format(sys.exc_info()[0]))
 								print ("* {0}".format(output))
-							try:
-								os.unlink(shrinkfile+".shrink.jpg")
-							except:
-								if verbose>3:
-									print("No converted file to clean up")
-							continue
+							if os.path.exists(shrinkfile+".shrink.jpg"):
+								try:
+									os.unlink(shrinkfile+".shrink.jpg")
+									continue
+								except:
+									if verbose>0:
+										print("* Could not clean up shrink file {0}".format(shrinkfile+".shrink.jpg"))
+									return(False)
 						except:
-							print(format(sys.exc_info()[0]))
-							print("ERROR: Could not convert file {0}".format(shrinkfile))
-							try:
-								os.unlink(shrinkfile+".shrink.jpg")
-							except:
-								if verbose>3:
-									print("No converted file to clean up")
-							continue
+							if verbose>4:
+								print(format(sys.exc_info()[0]))
+								print("ERROR: Could not convert file {0}".format(shrinkfile))
+							if os.path.exists(shrinkfile+".shrink.jpg"):
+								try:
+									os.unlink(shrinkfile+".shrink.jpg")
+									continue
+								except:
+									if verbose>0:
+										print("* Could not clean up shrink file {0}".format(shrinkfile+".shrink.jpg"))
+									return(False)
+								
 						# Do a check the new file is smaller!
-						if os.stat(shrinkfile).st_size > os.stat(shrinkfile+".shrink.jpg").st_size:
+						oldsize=os.stat(shrinkfile).st_size
+						newsize=os.stat(shrinkfile+".shrink.jpg").st_size
+						if oldsize>newsize:
 							os.unlink(shrinkfile)
 							os.rename(shrinkfile+".shrink.jpg",shrinkfile.replace(imgext,"jpg"))
+							if verbose>2:
+								print("*** Shrank    {0} : {1}/{2} {3}".format(leaf, newsize, oldsize, round(newsize/oldsize,2)))
 						else:
+							if verbose>2:
+								print("*** No shrink {0} : {1}/{2} {3}".format(leaf, newsize, oldsize, round(newsize/oldsize,2)))
 							os.unlink(shrinkfile+".shrink.jpg")
 						
 	# Collate a list of all files and force sort order into zip
@@ -277,7 +296,7 @@ def main():
 	#parser.usage=usage
 	parser.add_argument("-c","--copy",default=False,action="store_true", dest="copy",help="copy non CBR files to destination")
 	parser.add_argument("-z","--zipforce",default=False,action="store_true", dest="zipforce",help="re-zip CBZ archives (remove wasteful compression)")
-	parser.add_argument("--shrink",default=False,action="store_true", dest="shrink",help="[ WARNING - LOSSY ] recode large page files with JPEG")
+	parser.add_argument("--shrink",default=False,action="store_true", dest="shrink",help="[ WARNING - LOSSY ] aggressively shrink large page files with JPEG")
 	parser.add_argument("--forceshrink",default=False,action="store_true", dest="forceshrink",help="[ WARNING - LOSSY ] as --shrink, but attempt on all pages")
 	parser.add_argument("-f","--flat",default=False,action="store_true", dest="flat",help="Flat mode - do not create output subdirectories")
 	parser.add_argument("-m","--match",default=[],action="append", dest="match",help="only process paths matching Regular Expression")
