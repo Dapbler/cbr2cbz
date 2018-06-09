@@ -108,7 +108,6 @@ def cbr2cbz(infile, outfile,verbose=0,shrink=False,forceshrink=False,whatif=Fals
 		# End of if is_zipfile() unzip
 	else:
 		# Assume it's a RAR and launch subprocess unrar
-		#subcom=["unrar", "x",infile.replace('"','\\"'),cbr2cbztemp.replace('"','\\"')]
 		if verbose>1:
 			print ("** unrar {0}".format(infile))
 		subcom=["unrar", "x", infile, cbr2cbztemp]
@@ -118,7 +117,7 @@ def cbr2cbz(infile, outfile,verbose=0,shrink=False,forceshrink=False,whatif=Fals
 			output=subprocess.check_output(subcom)
 		except subprocess.CalledProcessError as e:
 			output=e.output
-			# Erroring here means that the file couldn't be unzipped either 
+			# Erroring here means that the file wasn't a zip. Couldn't unpack 
 			print("ERROR: CalledProcessError: unrar {0}".format(infile))
 			if verbose > 0:
 				try:
@@ -139,110 +138,116 @@ def cbr2cbz(infile, outfile,verbose=0,shrink=False,forceshrink=False,whatif=Fals
 				print(format(sys.exc_info()[0]))
 			print ("*** {0}".format(output))			
 		# End if is_zipfile() unrar method
-			
+	
+	# Shrink archive
 	if shrink or forceshrink:
 		if verbose>1:
 			print("** Shrinking {0}".format(infile))
+		# Walk through the extracted files
 		for root,dirs,files in os.walk(cbr2cbztemp):
 			dirs.sort()
 			files.sort()
-			if len(files) > 0:
-				for leaf in files:
+			for leaf in files:
+				if verbose>3:
+					print ("*** Assessing {0}".format(leaf))
+				shrinkfile=os.path.join(root,leaf)
+				# Use Imagemagick identify to get size, extension, type, width and height
+				subcom=["identify", "-precision", "16", "-format", '%b %e %m %W %H', "-quiet", shrinkfile]
+				if verbose>4:
+					print ("***** {0}".format(subcom))
+				try:
+					output=subprocess.check_output(subcom)
+				except subprocess.CalledProcessError as e:
+					output=e.output
 					if verbose>3:
-						print ("*** Assessing {0}".format(leaf))
-					shrinkfile=os.path.join(root,leaf)
-					subcom=["identify", "-precision", "16", "-format", '%b %e %m %W %H', "-quiet", shrinkfile]
+						print("**** ERROR: CalledProcessError: identify {0}".format(leaf))
+						try:
+							output=output.decode("UTF-8","ignore")
+							print ("**** {0}".format(output))
+						except:
+							print(format(sys.exc_info()[0]))
+					continue
+				except:
+					if verbose>3:
+						print("**** ERROR: Could not get image information on {0}".format(leaf))
+					continue
+				
+				# Extract image stats
+				try:
+					output=output.decode("UTF-8","ignore")
+					(imgsize,imgext,imgtype,imgx,imgy)=output.split(" ")
+					imgsize=int(imgsize.replace("B",""))
+					imgx=int(imgx)
+					imgy=int(imgy)
+					# imgar is the aspect ratio
+					imgar=imgx/imgy
+					if verbose>4:
+						print("***** Imagestats:",imgsize,imgext,imgtype,imgx,imgy,imgar)
+				except:
+					if verbose>3:
+						print("**** Output: {0}".format(output))
+						print(format(sys.exc_info()[0]))
+						print("**** ERROR: Could not extract image sizes")
+					continue
+				
+				# We expect wider pages to be larger so our allowance is based on the aspect ratio (imgar)
+				# If a page is less than 450KB x imgar keep the original to preserve quality
+				# If over that, or we're forcing shrink attempt shrinking
+				if ((imgtype=='JPEG' or imgtype=='PNG') and imgsize>(imgar*450000)) or forceshrink:
+					subcom=["convert",shrinkfile,"-quality", '40', "-resize", "x1500>",shrinkfile+".shrink.jpg"]
 					if verbose>4:
 						print ("***** {0}".format(subcom))
 					try:
+						# Call convert
 						output=subprocess.check_output(subcom)
 					except subprocess.CalledProcessError as e:
 						output=e.output
-						if verbose>3:
-							print("**** ERROR: CalledProcessError: identify {0}".format(leaf))
+						if verbose>4:
+							print("***** ERROR: CalledProcessError: convert {0}".format(shrinkfile))
 							try:
 								output=output.decode("UTF-8","ignore")
-								print ("**** {0}".format(output))
 							except:
 								print(format(sys.exc_info()[0]))
-						continue
+							print ("* {0}".format(output))
+						if os.path.exists(shrinkfile+".shrink.jpg"):
+							try:
+								os.unlink(shrinkfile+".shrink.jpg")
+								continue
+							except:
+								if verbose>0:
+									print("* Could not clean up shrink file {0}".format(shrinkfile+".shrink.jpg"))
+								return(False)
 					except:
-						if verbose>3:
-							print("**** ERROR: Could not get image information on {0}".format(leaf))
-						continue
-					
-					# Extract image stats
-					try:
-						output=output.decode("UTF-8","ignore")
-						(imgsize,imgext,imgtype,imgx,imgy)=output.split(" ")
-						imgsize=int(imgsize.replace("B",""))
-						imgx=int(imgx)
-						imgy=int(imgy)
-						imgar=imgx/imgy
 						if verbose>4:
-							print("***** Imagestats:",imgsize,imgext,imgtype,imgx,imgy,imgar)
-					except:
-						if verbose>3:
-							print("**** Output: {0}".format(output))
 							print(format(sys.exc_info()[0]))
-							print("**** ERROR: Could not extract image sizes")
-						continue
+							print("ERROR: Could not convert file {0}".format(shrinkfile))
+						if os.path.exists(shrinkfile+".shrink.jpg"):
+							try:
+								os.unlink(shrinkfile+".shrink.jpg")
+								continue
+							except:
+								if verbose>0:
+									print("* Could not clean up shrink file {0}".format(shrinkfile+".shrink.jpg"))
+								return(False)
+							
+					# Do a check the new file is smaller before replacing
+					oldsize=os.stat(shrinkfile).st_size
+					newsize=os.stat(shrinkfile+".shrink.jpg").st_size
+					if oldsize>newsize:
+						os.unlink(shrinkfile) # Not necessary on POSIX
+						os.rename(shrinkfile+".shrink.jpg",shrinkfile.replace(imgext,"jpg"))
+						if verbose>2:
+							print("*** Shrank    {0} : {1}/{2} {3}".format(leaf, newsize, oldsize, round(newsize/oldsize,2)))
+					else:
+						if verbose>2:
+							print("*** No shrink {0} : {1}/{2} {3}".format(leaf, newsize, oldsize, round(newsize/oldsize,2)))
+						os.unlink(shrinkfile+".shrink.jpg")
 					
-					if ((imgtype=='JPEG' or imgtype=='PNG') and imgsize>(imgar*500000)) or forceshrink:
-						subcom=["convert",shrinkfile,"-quality", '40', "-resize", "x1500>",shrinkfile+".shrink.jpg"]
-						if verbose>4:
-							print ("***** {0}".format(subcom))
-						try:
-							# Call convert
-							output=subprocess.check_output(subcom)
-						except subprocess.CalledProcessError as e:
-							output=e.output
-							if verbose>4:
-								print("***** ERROR: CalledProcessError: convert {0}".format(shrinkfile))
-								try:
-									output=output.decode("UTF-8","ignore")
-								except:
-									print(format(sys.exc_info()[0]))
-								print ("* {0}".format(output))
-							if os.path.exists(shrinkfile+".shrink.jpg"):
-								try:
-									os.unlink(shrinkfile+".shrink.jpg")
-									continue
-								except:
-									if verbose>0:
-										print("* Could not clean up shrink file {0}".format(shrinkfile+".shrink.jpg"))
-									return(False)
-						except:
-							if verbose>4:
-								print(format(sys.exc_info()[0]))
-								print("ERROR: Could not convert file {0}".format(shrinkfile))
-							if os.path.exists(shrinkfile+".shrink.jpg"):
-								try:
-									os.unlink(shrinkfile+".shrink.jpg")
-									continue
-								except:
-									if verbose>0:
-										print("* Could not clean up shrink file {0}".format(shrinkfile+".shrink.jpg"))
-									return(False)
-								
-						# Do a check the new file is smaller!
-						oldsize=os.stat(shrinkfile).st_size
-						newsize=os.stat(shrinkfile+".shrink.jpg").st_size
-						if oldsize>newsize:
-							os.unlink(shrinkfile)
-							os.rename(shrinkfile+".shrink.jpg",shrinkfile.replace(imgext,"jpg"))
-							if verbose>2:
-								print("*** Shrank    {0} : {1}/{2} {3}".format(leaf, newsize, oldsize, round(newsize/oldsize,2)))
-						else:
-							if verbose>2:
-								print("*** No shrink {0} : {1}/{2} {3}".format(leaf, newsize, oldsize, round(newsize/oldsize,2)))
-							os.unlink(shrinkfile+".shrink.jpg")
-						
 	# Collate a list of all files and force sort order into zip
 	zipfiles=[] #os.listdir(cbr2cbztemp)
 	for root,dirs,files in os.walk(cbr2cbztemp):
-		if verbose>3:
-			print("**** Adding zip directory : {0} - files:{1} ".format(root,len(files)))
+		if verbose>2:
+			print("*** Adding zip directory : {0} - files:{1} ".format(root,len(files)))
 		if len(files) > 0:
 			for leaf in files:
 				addfile=os.path.join(root,leaf)
@@ -274,7 +279,7 @@ def cbr2cbz(infile, outfile,verbose=0,shrink=False,forceshrink=False,whatif=Fals
 			zfarcname=zf
 			zfarcname=zfarcname.replace(u'\xa0', ' ')
 			zfarcname=zfarcname.encode('ascii', 'replace').decode('ascii', 'replace')
-			outzip.write(zf,arcname=zfarcname)		
+			outzip.write(zf,arcname=zfarcname)
 			#outzip.write(zf)
 			if verbose>2:
 				print("*** Adding: {0}".format(zf))
