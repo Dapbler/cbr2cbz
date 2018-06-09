@@ -278,7 +278,7 @@ def main():
 	parser.add_argument("-c","--copy",default=False,action="store_true", dest="copy",help="copy non CBR files to destination")
 	parser.add_argument("-z","--zipforce",default=False,action="store_true", dest="zipforce",help="re-zip CBZ archives (remove wasteful compression)")
 	parser.add_argument("--shrink",default=False,action="store_true", dest="shrink",help="[ WARNING - LOSSY ] recode large page files with JPEG")
-	parser.add_argument("--forceshrink",default=False,action="store_true", dest="forceshrink",help="[ WARNING - LOSSY ] as shrink, but attempt on all pages")
+	parser.add_argument("--forceshrink",default=False,action="store_true", dest="forceshrink",help="[ WARNING - LOSSY ] as --shrink, but attempt on all pages")
 	parser.add_argument("-f","--flat",default=False,action="store_true", dest="flat",help="Flat mode - do not create output subdirectories")
 	parser.add_argument("-m","--match",default=[],action="append", dest="match",help="only process paths matching Regular Expression")
 	parser.add_argument("-e","--exclude",default=[],action="append", dest="exclude",help="exclude source files matching Regular Expression")
@@ -427,7 +427,7 @@ def main():
 				else:
 					if options.verbose>0:
 						print ("* Converting {0}".format(infile))
-					if(cbr2cbz(infile,outfile,verbose=options.verbose,shrink=options.shrink,whatif=options.whatif)):
+					if(cbr2cbz(infile,outfile,verbose=options.verbose,shrink=options.shrink,forceshrink=options.forceshrink,whatif=options.whatif)):
 						rescount['convert'] += 1
 						if options.verbose>0:
 							print("* ResultConvert: {0}".format(infile))
