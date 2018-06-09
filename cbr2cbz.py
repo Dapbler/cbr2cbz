@@ -50,7 +50,7 @@ def cbr2cbzclean():
 
 # Function that takes input and output file names and converts from CBR to CBZ
 # Returns True if managed to create .CBZ and False on error
-def cbr2cbz(infile, outfile,verbose=0,whatif=False):
+def cbr2cbz(infile, outfile,verbose=0,shrink=False,forceshrink=False,whatif=False):
 	if not os.path.isfile(infile):
 		print("ERROR - infile doesn't exist")
 		return(False)
@@ -140,6 +140,85 @@ def cbr2cbz(infile, outfile,verbose=0,whatif=False):
 			print ("*** {0}".format(output))			
 		# End if is_zipfile() unrar method
 			
+	if shrink or forceshrink:
+		for root,dirs,files in os.walk(cbr2cbztemp):
+			if verbose>3:
+				print("**** Adding zip directory : {0} - files:{1} ".format(root,len(files)))
+			if len(files) > 0:
+				for leaf in files:
+					shrinkfile=os.path.join(root,leaf)
+					subcom=["identify", "-precision", "16", "-format", '%b %e %m %W %H', shrinkfile]
+					if verbose>3:
+						print ("** {0}".format(subcom))
+					try:
+						output=subprocess.check_output(subcom)
+					except subprocess.CalledProcessError as e:
+						output=e.output
+						print("ERROR: CalledProcessError: identify {0}".format(infile))
+						if verbose > 0:
+							try:
+								output=output.decode("UTF-8","ignore")
+							except:
+								print(format(sys.exc_info()[0]))
+							print ("* {0}".format(output))
+						continue
+					except:
+						print("ERROR: Could not get image information on {0}".format(shrinkfile))
+						continue
+					
+					# Extract image stats
+					try:
+						output=output.decode("UTF-8","ignore")
+						(imgsize,imgext,imgtype,imgx,imgy)=output.split(" ")
+						imgsize=int(imgsize.replace("B",""))
+						imgx=int(imgx)
+						imgy=int(imgy)
+						imgar=imgx/imgy
+						if verbose>3:
+							print("Imagestats:",imgsize,imgext,imgtype,imgx,imgy,imgar)
+					except:
+						print("Output: {0}".format(output))
+						print(format(sys.exc_info()[0]))
+						print("ERROR: Could not extract image sizes")
+						continue
+					
+					if ((imgtype=='JPEG' or imgtype=='PNG') and imgsize>(imgar*600000)) or forceshrink:
+						subcom=["convert",shrinkfile,"-quality", '40', "-resize", "x1500>",shrinkfile+".shrink.jpg"]
+						if verbose>3:
+							print ("** {0}".format(subcom))
+						try:
+							output=subprocess.check_output(subcom)
+						except subprocess.CalledProcessError as e:
+							output=e.output
+							print("ERROR: CalledProcessError: convert {0}".format(shrinkfile))
+							if verbose > 0:
+								try:
+									output=output.decode("UTF-8","ignore")
+								except:
+									print(format(sys.exc_info()[0]))
+								print ("* {0}".format(output))
+							try:
+								os.unlink(shrinkfile+".shrink.jpg")
+							except:
+								if verbose>3:
+									print("No converted file to clean up")
+							continue
+						except:
+							print(format(sys.exc_info()[0]))
+							print("ERROR: Could not convert file {0}".format(shrinkfile))
+							try:
+								os.unlink(shrinkfile+".shrink.jpg")
+							except:
+								if verbose>3:
+									print("No converted file to clean up")
+							continue
+						# Do a check the new file is smaller!
+						if os.stat(shrinkfile).st_size > os.stat(shrinkfile+".shrink.jpg").st_size:
+							os.unlink(shrinkfile)
+							os.rename(shrinkfile+".shrink.jpg",shrinkfile.replace(imgext,"jpg"))
+						else:
+							os.unlink(shrinkfile+".shrink.jpg")
+						
 	# Collate a list of all files and force sort order into zip
 	zipfiles=[] #os.listdir(cbr2cbztemp)
 	for root,dirs,files in os.walk(cbr2cbztemp):
@@ -198,6 +277,8 @@ def main():
 	#parser.usage=usage
 	parser.add_argument("-c","--copy",default=False,action="store_true", dest="copy",help="copy non CBR files to destination")
 	parser.add_argument("-z","--zipforce",default=False,action="store_true", dest="zipforce",help="re-zip CBZ archives (remove wasteful compression)")
+	parser.add_argument("--shrink",default=False,action="store_true", dest="shrink",help="[ WARNING - LOSSY ] recode large page files with JPEG")
+	parser.add_argument("--forceshrink",default=False,action="store_true", dest="forceshrink",help="[ WARNING - LOSSY ] as shrink, but attempt on all pages")
 	parser.add_argument("-f","--flat",default=False,action="store_true", dest="flat",help="Flat mode - do not create output subdirectories")
 	parser.add_argument("-m","--match",default=[],action="append", dest="match",help="only process paths matching Regular Expression")
 	parser.add_argument("-e","--exclude",default=[],action="append", dest="exclude",help="exclude source files matching Regular Expression")
@@ -346,7 +427,7 @@ def main():
 				else:
 					if options.verbose>0:
 						print ("* Converting {0}".format(infile))
-					if(cbr2cbz(infile,outfile,verbose=options.verbose,whatif=options.whatif)):
+					if(cbr2cbz(infile,outfile,verbose=options.verbose,shrink=options.shrink,whatif=options.whatif)):
 						rescount['convert'] += 1
 						if options.verbose>0:
 							print("* ResultConvert: {0}".format(infile))
