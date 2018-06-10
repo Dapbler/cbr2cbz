@@ -19,13 +19,15 @@ Additional optional features include:
 * Copy non CBR/CBZ files
 * Flat mode - output all files in the top level of the destination folder
 * Pattern matching to decide what files to copy/convert (multiple pattern optons may be set and all are checked)
+* Exclude archived page names matching regular expressions (from file or command line)
 * Optional shrinking of page (lossy conversion)
 * Shrinking heuristics and compression settings now exposed via --shrinkXXXX settings
 
 <pre>
-usage: cbr2cbz.py [-h] [-c] [-z] [--shrink] [--shrinkKB SHRINKKB]
+Usage: cbr2cbz.py [-h] [-c] [-z] [--shrink] [--shrinkKB SHRINKKB]
                   [--shrinkQual SHRINKQUAL] [--shrinkHeight SHRINKHEIGHT] [-f]
-                  [-m MATCH] [-e EXCLUDE] [-i] [-v] [-w]
+                  [-m MATCH] [-e EXCLUDE] [--excludepage EXCLUDEPAGE]
+                  [--excludepagefile EXCLUDEPAGEFILE] [--cs] [-v] [-w]
                   source dest
 
 Converts CBR archives to CBZ
@@ -52,9 +54,15 @@ optional arguments:
                         only process paths matching Regular Expression
   -e EXCLUDE, --exclude EXCLUDE
                         exclude source files matching Regular Expression
-  -i, --ignorecase      ignore case in RE matching -m
+  --excludepage EXCLUDEPAGE
+                        exclude page matching Regular Expression
+  --excludepagefile EXCLUDEPAGEFILE
+                        exclude pages matching RE in file
+  --cs, --case-sensitive
+                        use case sensitive RE matching -m
   -v, --verbose         print additional information (multiple accepted eg.
                         -vvv)
   -w, --whatif          test mode - no action
+
 </pre>
 

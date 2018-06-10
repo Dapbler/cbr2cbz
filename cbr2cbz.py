@@ -50,7 +50,7 @@ def cbr2cbzclean():
 
 # Function that takes input and output file names and converts from CBR to CBZ
 # Returns True if managed to create .CBZ and False on error
-def cbr2cbz(infile, outfile,verbose=0,shrink=False,shrinkKB=300,shrinkQual=40,shrinkHeight=1500,whatif=False):
+def cbr2cbz(infile, outfile,verbose=0,excludepagelist=[],shrink=False,shrinkKB=300,shrinkQual=40,shrinkHeight=1500,whatif=False):
 	if not os.path.isfile(infile):
 		print("ERROR - infile doesn't exist")
 		return(False)
@@ -267,6 +267,17 @@ def cbr2cbz(infile, outfile,verbose=0,shrink=False,shrinkKB=300,shrinkQual=40,sh
 			print("*** Adding zip directory : {0} - files:{1} ".format(root,len(files)))
 		if len(files) > 0:
 			for leaf in files:
+				if excludepagelist:
+					epf = False # Exclude page flag
+					for m in excludepagelist:
+						# leaf for now, consider using folder as well
+						if re.search(m,leaf)!=None:
+							epf=True
+							break
+					if epf:
+						if verbose>3:
+							print("**** Excluding page {0} - {1}".format(infile,leaf))
+						continue
 				addfile=os.path.join(root,leaf)
 				zipfiles.append(addfile.replace(cbr2cbztemp+'/',''))			
 	zipfiles.sort()
@@ -325,7 +336,10 @@ def main():
 	parser.add_argument("-f","--flat",default=False,action="store_true", dest="flat",help="Flat mode - do not create output subdirectories")
 	parser.add_argument("-m","--match",default=[],action="append", dest="match",help="only process paths matching Regular Expression")
 	parser.add_argument("-e","--exclude",default=[],action="append", dest="exclude",help="exclude source files matching Regular Expression")
-	parser.add_argument("-i","--ignorecase",default=False,action="store_true", dest="ignorecase",help="ignore case in RE matching -m")
+	parser.add_argument("--excludepage",default=[],action="append", dest="excludepage",help="exclude page matching Regular Expression")
+	parser.add_argument("--excludepagefile",default=False,action="store", help="exclude pages matching RE in file")
+	#parser.add_argument("-i","--ignorecase",default=False,action="store_true", dest="ignorecase",help="ignore case in RE matching -m")
+	parser.add_argument("--cs","--case-sensitive",default=False,action="store_true", dest="cs",help="use case sensitive RE matching -m")
 	parser.add_argument("-v","--verbose",default=0,action="count", dest="verbose",help="print additional information (multiple accepted eg. -vvv)")
 	parser.add_argument("-w","--whatif",default=False,action="store_true", dest="whatif",help="test mode - no action")
 	parser.add_argument('source',help="source file or directory")
@@ -344,7 +358,41 @@ def main():
 		CBxMatch='\.[Cc][bB][rRzZ]$'
 	else:
 		CBxMatch='\.[Cc][bB][rR]$'
+	
+	if options.cs:
+		reflags= 0
+	else:
+		reflags= re.I
+		
+		
+	if options.match:
+		matchlist = [re.compile(x.rstrip(),reflags) for x in options.match]
+	else:
+		matchlist=[]
+		
+	if options.exclude:
+		excludelist = [re.compile(x.rstrip(),reflags) for x in options.exclude]
+	else:
+		excludelist=[]
+		
+	excludepagelist=[]
+	if options.excludepagefile:
+		try:
+			f=os.path.abspath(os.path.expanduser(options.excludepagefile))
+			text_file = open(f, "r")
+			excludepagelist = excludepagelist + [re.compile(x.rstrip(),reflags) for x in text_file.readlines()]
+			text_file.close()
+		except:
+			exit("Error loading exclue page file")
+		
+	if options.excludepage:
+		excludepagelist = excludepagelist + [re.compile(x.rstrip(),reflags) for x in options.excludepage]
 
+	if options.verbose>3:
+		print("excludepagelist:",excludepagelist)
+		print("matchlist:",matchlist)
+		print("excludelist:",excludelist)
+		
 	source= os.path.abspath(os.path.expanduser(options.source))
 	dest= os.path.abspath(os.path.expanduser(options.dest))
 
@@ -403,27 +451,19 @@ def main():
 				
 			# Continue if excluded by match
 			# xor is picky about types so force re.search result into boolean
-			if options.match :
+			if matchlist :
 				matchflag=False
-				for m in options.match:
-					if options.ignorecase:
-						matcher=re.compile(m, re.I)
-					else:
-						matcher=m
-					if re.search(matcher,infile)!=None:
+				for m in matchlist:
+					if re.search(m,infile)!=None:
 						matchflag=True
 						break
 			else:
 				matchflag=True
 
 				
-			if options.exclude and matchflag:
-				for m in options.exclude:
-					if options.ignorecase:
-						matcher=re.compile(m, re.I)
-					else:
-						matcher=m
-					if re.search(matcher,infile)!=None:
+			if excludelist and matchflag:
+				for m in excludelist:
+					if re.search(m,infile)!=None:
 						matchflag=False
 						break
 			
@@ -470,7 +510,7 @@ def main():
 				else:
 					if options.verbose>0:
 						print ("* Converting {0}".format(infile))
-					if(cbr2cbz(infile,outfile,verbose=options.verbose,shrink=options.shrink,shrinkKB=options.shrinkKB,shrinkQual=options.shrinkQual,shrinkHeight=options.shrinkHeight,whatif=options.whatif)):
+					if(cbr2cbz(infile,outfile,verbose=options.verbose,excludepagelist=excludepagelist,shrink=options.shrink,shrinkKB=options.shrinkKB,shrinkQual=options.shrinkQual,shrinkHeight=options.shrinkHeight,whatif=options.whatif)):
 						rescount['convert'] += 1
 						if options.verbose>0:
 							print("* ResultConvert: {0}".format(infile))
