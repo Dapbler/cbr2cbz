@@ -50,7 +50,7 @@ def cbr2cbzclean():
 
 # Function that takes input and output file names and converts from CBR to CBZ
 # Returns True if managed to create .CBZ and False on error
-def cbr2cbz(infile, outfile,verbose=0,shrink=False,forceshrink=False,whatif=False):
+def cbr2cbz(infile, outfile,verbose=0,shrink=False,shrinkKB=300,shrinkQual=40,shrinkHeight=1500,whatif=False):
 	if not os.path.isfile(infile):
 		print("ERROR - infile doesn't exist")
 		return(False)
@@ -140,7 +140,7 @@ def cbr2cbz(infile, outfile,verbose=0,shrink=False,forceshrink=False,whatif=Fals
 		# End if is_zipfile() unrar method
 	
 	# Shrink archive
-	if shrink or forceshrink:
+	if shrink:
 		if verbose>1:
 			print("** Shrinking {0}".format(infile))
 		# Walk through the extracted files
@@ -190,6 +190,10 @@ def cbr2cbz(infile, outfile,verbose=0,shrink=False,forceshrink=False,whatif=Fals
 						print("**** ERROR: Could not extract image sizes")
 					continue
 				
+				# Only process understood file types
+				if not (imgtype=='JPEG' or imgtype=='PNG'):
+					continue
+					 
 				# Check for a name clash
 				# This would happen with archive files which only differ by extension
 				# eg. file1.png, file1.jpg - when file1.png is shrunk
@@ -199,10 +203,11 @@ def cbr2cbz(infile, outfile,verbose=0,shrink=False,forceshrink=False,whatif=Fals
 					continue # Don't attempt shrinking this file as we can't rename it
 				
 				# We expect wider pages to be larger so our allowance is based on the aspect ratio (imgar)
-				# If a page is less than 450KB x imgar keep the original to preserve quality
-				# If over that, or we're forcing shrink attempt shrinking
-				if ((imgtype=='JPEG' or imgtype=='PNG') and imgsize>(imgar*450000)) or forceshrink:
-					subcom=["convert",shrinkfile,"-quality", '40', "-resize", "x1500>",shrinkfile+".shrink.jpg"]
+				# Shrink limit is shrinkKB * 1000 * 1.5 * imgar. AR is typically about .65 for single pages - hence 1.5 mutliplier
+				# If a page is less than shrinklimit skip shrink attempt (to save time and image quality)
+				shrinklimit=(imgar*1.5*shrinkKB*1000)
+				if imgsize>shrinklimit:
+					subcom=["convert",shrinkfile,"-quality", str(shrinkQual), "-resize", "x"+str(shrinkHeight)+">",shrinkfile+".shrink.jpg"]
 					if verbose>4:
 						print ("***** {0}".format(subcom))
 					try:
@@ -314,7 +319,9 @@ def main():
 	parser.add_argument("-c","--copy",default=False,action="store_true", dest="copy",help="copy non CBR files to destination")
 	parser.add_argument("-z","--zipforce",default=False,action="store_true", dest="zipforce",help="re-zip CBZ archives (remove wasteful compression)")
 	parser.add_argument("--shrink",default=False,action="store_true", dest="shrink",help="[ WARNING - LOSSY ] aggressively shrink large page files with JPEG")
-	parser.add_argument("--forceshrink",default=False,action="store_true", dest="forceshrink",help="[ WARNING - LOSSY ] as --shrink, but attempt on all pages")
+	parser.add_argument("--shrinkKB",default=300, type=int,action="store",help="with --shrink process pages larger than this many KB (default = 300)")
+	parser.add_argument("--shrinkQual",default=40, type=int,action="store",help="with --shrink use custom JPEG quality (default = 40)")
+	parser.add_argument("--shrinkHeight",default=1500, type=int,action="store",help="with --shrink sets maximum pixel height of page (default = 1500)")
 	parser.add_argument("-f","--flat",default=False,action="store_true", dest="flat",help="Flat mode - do not create output subdirectories")
 	parser.add_argument("-m","--match",default=[],action="append", dest="match",help="only process paths matching Regular Expression")
 	parser.add_argument("-e","--exclude",default=[],action="append", dest="exclude",help="exclude source files matching Regular Expression")
@@ -463,7 +470,7 @@ def main():
 				else:
 					if options.verbose>0:
 						print ("* Converting {0}".format(infile))
-					if(cbr2cbz(infile,outfile,verbose=options.verbose,shrink=options.shrink,forceshrink=options.forceshrink,whatif=options.whatif)):
+					if(cbr2cbz(infile,outfile,verbose=options.verbose,shrink=options.shrink,shrinkKB=options.shrinkKB,shrinkQual=options.shrinkQual,shrinkHeight=options.shrinkHeight,whatif=options.whatif)):
 						rescount['convert'] += 1
 						if options.verbose>0:
 							print("* ResultConvert: {0}".format(infile))
