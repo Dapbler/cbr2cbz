@@ -8,19 +8,17 @@ Optional requirements: Imagemagick identify and convert programs for --shrink
 Comicrack for Android recommends CBZ archives without compression (the images in archives are typically compressed anyway, so using zip/rar compression doesn't save much space and uses significant memory/power on mobile devices).
 cbr2cbz.py will take a source folder of CBR files and convert to CBZ (output goes to a new folder).
 
-Note: Output file names are converted to ANSI. Let me knwo if unicode is required.
+Note: Output file names are converted to ANSI. Let me know if you need unicode support.
 
 https://github.com/Dapbler/cbr2cbz
 
 Currently GNU/Linux, but uses mostly OS agnostic modules so should be relatively easy to convert to Windows (subprocess commands will need modification).
 
-Requires an unrar utility for unpacking.
-
 Additional optional features include:
 * Convert existing CBZ files to uncompressed CBZ
 * Copy non CBR/CBZ files
 * Flat mode - output all files in the top level of the destination folder
-* Pattern matching to decide what files to copy/convert
+* Pattern matching to decide what files to copy/convert (multiple pattern optons may be set and all are checked)
 * Optional shrinking of page (lossy conversion)
 * Shrinking heuristics and compression settings now exposed via --shrinkXXXX settings
 
