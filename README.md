@@ -20,7 +20,7 @@ Additional optional features include:
 * Flat mode - output all files in the top level of the destination folder
 * Pattern matching to decide what files to copy/convert (multiple pattern optons may be set and all are checked)
 * Exclude archived page names matching regular expressions (from file or command line)
-* Optional shrinking of page (lossy conversion)
+* Shrinking of page (lossy conversion) for non-archival use on devices with limited storage/memory
 * Shrinking heuristics and compression settings now exposed via --shrinkXXXX settings
 
 <pre>
