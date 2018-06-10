@@ -24,13 +24,14 @@ Additional optional features include:
 * Shrinking heuristics and compression settings now exposed via --shrinkXXXX settings
 
 <pre>
-Usage: cbr2cbz.py [-h] [-c] [-z] [--shrink] [--shrinkKB SHRINKKB]
-                  [--shrinkQual SHRINKQUAL] [--shrinkHeight SHRINKHEIGHT] [-f]
-                  [-m MATCH] [-e EXCLUDE] [--excludepage EXCLUDEPAGE]
+usage: cbr2cbz.py [-h] [--examples] [-c] [--copyonly] [-z] [--shrink]
+                  [--shrinkKB SHRINKKB] [--shrinkQual SHRINKQUAL]
+                  [--shrinkHeight SHRINKHEIGHT] [-f] [-m MATCH] [-e EXCLUDE]
+                  [--excludepage EXCLUDEPAGE]
                   [--excludepagefile EXCLUDEPAGEFILE] [--cs] [-v] [-w]
                   source dest
 
-Converts CBR archives to CBZ
+Converts, copies or shrinks CBR/CBZ archives to stored CBZ
 
 positional arguments:
   source                source file or directory
@@ -38,7 +39,10 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --examples            view this help with additional (requires dummy
+                        source/destination arguments)
   -c, --copy            copy non CBR files to destination
+  --copyonly            copy CBR/CBZ instead of converting (implies -c)
   -z, --zipforce        re-zip CBZ archives (remove wasteful compression)
   --shrink              [ WARNING - LOSSY ] aggressively shrink large page
                         files with JPEG
@@ -59,10 +63,36 @@ optional arguments:
   --excludepagefile EXCLUDEPAGEFILE
                         exclude pages matching RE in file
   --cs, --case-sensitive
-                        use case sensitive RE matching -m
+                        use case sensitive RE matching
   -v, --verbose         print additional information (multiple accepted eg.
                         -vvv)
   -w, --whatif          test mode - no action
 
-</pre>
+Pattern matching options (-m, -e, --pageexclude) may be used more than once to match against multiple Regular Expressions.
 
+To see examples use "--examples a b" (removing dummy source/destination requirement is a work in progress)
+
+	Examples:
+
+Convert all *.CBR files in directory CBR/ to CBZ format and put the output in /tmp/test
+	cbr2cbz.py CBR/ /tmp/test/
+
+Convert CBR and CBZ files in CBR to CBZ format:
+	cbr2cbz.py -z CBR/ /tmp/test/
+
+Copy files in CBR/, converting CBR files:
+	cbr2cbz.py -c CBR/ /tmp/test/
+
+Copy all Cat Conversation files to /tmp/test, without creating subdirectories
+	cbr2cbz.py --copyonly -f -m "Cat.*Conv" CBR/ /tmp/test
+
+Copy all files to /tmp/test, excluding Thumbs.db
+	cbr2cbz.py --copyonly -e "Thumbs.db" CBR/ /tmp/test
+
+Convert CBR and CBZ files to low quality format and place in CatConv
+	cbr2cbz.py -z --shrink CBR/ CatConv/
+
+Convert CBR and CBZ files to extremely low quality format and place in CatConv
+	cbr2cbz.py -z --shrink --shrinkKB 100 --shrinkQual 10 CBR/ CatConv/
+
+</pre>

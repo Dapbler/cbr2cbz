@@ -5,21 +5,12 @@ cbr2cbz.py - converts CBR comic book files (RAR) to CBZ (as uncompressed zip)
 Requires system commands: unrar, zip
 """
 # Usage string used by optparse in main(), but it seems a shame to double up on documentation text
-usage = """
- Use 1 - single file:      %(prog) [options] <source file> <output directory>
- Use 2 - folder contents:  %(prog) [options] <source directory> <output directory>
 
-By default only *.CBR (case insensitive) are processed into CBZ. CBZ may optionally be repacked.
-With -c (copy) mode other files will be copied.
-Output format for CBR to CBZ conversion is uncompressed zip (recommended for ComicRack on Android)"""
-description="Converts CBR archives to CBZ"
 import os
 import sys
 import re
 import shutil
-# argparse requires 3.2 and up
-import argparse
-#from optparse import OptionParser
+import argparse # argparse requires 3.2 and up
 # Subprocess for external unrar command
 import subprocess
 import zipfile
@@ -324,10 +315,42 @@ def cbr2cbz(infile, outfile,verbose=0,excludepagelist=[],shrink=False,shrinkKB=3
 	return(False)
 				
 def main():
+	description="Converts, copies or shrinks CBR/CBZ archives to stored CBZ"
+	epilog="""
+Pattern matching options (-m, -e, --pageexclude) may be used more than once to match against multiple Regular Expressions.
 
-	parser = argparse.ArgumentParser(description=description)
+To see examples use "--examples a b" (removing dummy source/destination requirement is a work in progress)
+"""
+	examples="""
+	Examples:
+
+Convert all *.CBR files in directory CBR/ to CBZ format and put the output in /tmp/test
+	cbr2cbz.py CBR/ /tmp/test/
+
+Convert CBR and CBZ files in CBR to CBZ format:
+	cbr2cbz.py -z CBR/ /tmp/test/
+
+Copy files in CBR/, converting CBR files:
+	cbr2cbz.py -c CBR/ /tmp/test/
+
+Copy all Cat Conversation files to /tmp/test, without creating subdirectories
+	cbr2cbz.py --copyonly -f -m "Cat.*Conv" CBR/ /tmp/test
+
+Copy all files to /tmp/test, excluding Thumbs.db
+	cbr2cbz.py --copyonly -e "Thumbs.db" CBR/ /tmp/test
+
+Convert CBR and CBZ files to low quality format and place in CatConv
+	cbr2cbz.py -z --shrink CBR/ CatConv/
+
+Convert CBR and CBZ files to extremely low quality format and place in CatConv
+	cbr2cbz.py -z --shrink --shrinkKB 100 --shrinkQual 10 CBR/ CatConv/
+
+"""
+	parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,description=description,epilog=epilog)
 	#parser.usage=usage
+	parser.add_argument("--examples",default=False,action="store_true",help="view this help with additional (requires dummy source/destination arguments)")
 	parser.add_argument("-c","--copy",default=False,action="store_true", dest="copy",help="copy non CBR files to destination")
+	parser.add_argument("--copyonly",default=False,action="store_true", help="copy CBR/CBZ instead of converting (implies -c)")
 	parser.add_argument("-z","--zipforce",default=False,action="store_true", dest="zipforce",help="re-zip CBZ archives (remove wasteful compression)")
 	parser.add_argument("--shrink",default=False,action="store_true", dest="shrink",help="[ WARNING - LOSSY ] aggressively shrink large page files with JPEG")
 	parser.add_argument("--shrinkKB",default=300, type=int,action="store",help="with --shrink process pages larger than this many KB (default = 300)")
@@ -339,17 +362,25 @@ def main():
 	parser.add_argument("--excludepage",default=[],action="append", dest="excludepage",help="exclude page matching Regular Expression")
 	parser.add_argument("--excludepagefile",default=False,action="store", help="exclude pages matching RE in file")
 	#parser.add_argument("-i","--ignorecase",default=False,action="store_true", dest="ignorecase",help="ignore case in RE matching -m")
-	parser.add_argument("--cs","--case-sensitive",default=False,action="store_true", dest="cs",help="use case sensitive RE matching -m")
+	parser.add_argument("--cs","--case-sensitive",default=False,action="store_true", dest="cs",help="use case sensitive RE matching")
 	parser.add_argument("-v","--verbose",default=0,action="count", dest="verbose",help="print additional information (multiple accepted eg. -vvv)")
 	parser.add_argument("-w","--whatif",default=False,action="store_true", dest="whatif",help="test mode - no action")
-	parser.add_argument('source',help="source file or directory")
-	parser.add_argument('dest',help="destination directory")
+	parser.add_argument('source',default=False,help="source file or directory")
+	parser.add_argument('dest',default=False, help="destination directory")
 	options = parser.parse_args()
 		
 	if options.verbose>1:
 		print ("** Options:",str(options))
 		#print("** Arguments", args)
-			
+	
+	if options.examples:
+		parser.print_help()
+		print(examples)
+		exit()
+	else:
+		if not (options.source and options.dest):
+			parser.print_help()
+	
 	if options.whatif:
 		print("Running in test (WHATIF) mode")
 	
@@ -358,6 +389,11 @@ def main():
 		CBxMatch='\.[Cc][bB][rRzZ]$'
 	else:
 		CBxMatch='\.[Cc][bB][rR]$'
+	
+	if options.copyonly:
+		options.copy=True
+		# Kludge - don't recognise archives
+		CBxMatch="^KULDGEY.kludge$"
 	
 	if options.cs:
 		reflags= 0
@@ -392,6 +428,7 @@ def main():
 		print("excludepagelist:",excludepagelist)
 		print("matchlist:",matchlist)
 		print("excludelist:",excludelist)
+		print ("** Options:",str(options))
 		
 	source= os.path.abspath(os.path.expanduser(options.source))
 	dest= os.path.abspath(os.path.expanduser(options.dest))
