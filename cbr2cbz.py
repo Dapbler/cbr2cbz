@@ -396,9 +396,6 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 		parser.print_help()
 		print(examples)
 		exit()
-	else:
-		if not (options.source and options.dest):
-			parser.print_help()
 	
 	if options.whatif:
 		print("Running in test (WHATIF) mode")
@@ -411,15 +408,6 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 	
 	if options.noconvert:
 		options.copy=True
-
-	if os.path.isfile(source):
-		# Change around options to handle single file
-		options.match=["{0}$".format(re.escape(os.path.basename(source)))]
-		options.copy=True
-		source=os.path.dirname(source)
-		if options.verbose>1:
-			print("** Switching from filemode to dirmode")
-			#print("** Options:",str(options))
 		
 	# Construct lists of RE matches for match, exclude, excludepage
 	if options.cs:
@@ -463,11 +451,11 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 		excludepagelist = excludepagelist + [re.compile(x.rstrip(),reflags) for x in options.excludepage]
 
 	if options.verbose>3:
-		print ("** Options:",str(options))
-		print("matchlist:",matchlist)
-		print("excludelist:",excludelist)
-		print("matchpagelist:",matchpagelist)
-		print("excludepagelist:",excludepagelist)
+		print ("**** Options:",str(options))
+		print("**** matchlist:",matchlist)
+		print("**** excludelist:",excludelist)
+		print("**** matchpagelist:",matchpagelist)
+		print("**** excludepagelist:",excludepagelist)
 		
 	source= os.path.abspath(os.path.expanduser(options.source))
 	dest= os.path.abspath(os.path.expanduser(options.dest))
@@ -475,30 +463,41 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 	if source == dest:
 		exit("Source = dest {0}".format(source))
 		
-	#exit() # Safety for testing arg scanner
-	# change to dictionary?
-	rescount={x:0 for x in ["copy","convert","excluded","failed","skipped"]}
-	
 	if not os.path.exists(source):
 		exit("Error: Source '{0}' does not exist.".format(source))
-		
-
+			
+	if os.path.isfile(source):
+		# Change around options to handle single file
+		matchlist=["^{0}$".format(re.escape(source))]
+		options.copy=True
+		source=os.path.dirname(source)
+		if options.verbose>1:
+			print("** Switching from filemode to dirmode")
+			print("** Source: {0}".format(source))
+			print("** Dest: {0}".format(dest))
+			print("** Matchlist:",str(matchlist))
 	
 	if not os.path.isdir(source):
 		exit("Error: Source '{0}' is not a file or folder.".format(source))
-			
+	
+	rescount={x:0 for x in ["copy","convert","excluded","failed","skipped"]}
+	
 	if options.verbose>1:
 		print ("** Process source directory : "+source)
 		
 	outdir=dest # Default used by FLAT MODE
 	
-	# All good, already exists		# Check destination is dir (or create)
 	# recurse with os.walk()
 	failedlist=[]
 	
 	for root,dirs,files in os.walk(source):
 		dirs.sort()
 		files.sort()
+		if re.match(re.escape(dest),root):
+			# Current source dir is under the destination - this could be BAD
+			if options.verbose>1:
+				print("** Skipping dir - inside destination: {0}".format(root))
+			continue
 		if options.verbose>1:
 			print("** Directory : {0} - subdirs:{1} files:{2} ".format(root,len(dirs),len(files)))
 		
