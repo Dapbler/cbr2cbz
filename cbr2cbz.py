@@ -382,7 +382,6 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 	parser.add_argument("--matchpagefile",default=False,action="store", help="include pages matching RE in file")
 	parser.add_argument("--excludepage",default=[],action="append", dest="excludepage",help="exclude page matching Regular Expression")
 	parser.add_argument("--excludepagefile",default=False,action="store", help="exclude pages matching RE in file")
-	#parser.add_argument("-i","--ignorecase",default=False,action="store_true", dest="ignorecase",help="ignore case in RE matching -m")
 	parser.add_argument("--cs","--case-sensitive",default=False,action="store_true", dest="cs",help="use case sensitive RE matching")
 	parser.add_argument("-v","--verbose",default=0,action="count", dest="verbose",help="print additional information (multiple accepted eg. -vvv)")
 	parser.add_argument("-w","--whatif",default=False,action="store_true", dest="whatif",help="test mode - no action")
@@ -392,7 +391,6 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 		
 	if options.verbose>1:
 		print ("** Options:",str(options))
-		#print("** Arguments", args)
 	
 	if options.examples:
 		parser.print_help()
@@ -413,9 +411,16 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 	
 	if options.noconvert:
 		options.copy=True
-		# Kludge - set a bogus search parameter to not recognize archives
-		CBxMatch="^KULDGEY.kludge$"
-	
+
+	if os.path.isfile(source):
+		# Change around options to handle single file
+		options.match=["{0}$".format(re.escape(os.path.basename(source)))]
+		options.copy=True
+		source=os.path.dirname(source)
+		if options.verbose>1:
+			print("** Switching from filemode to dirmode")
+			#print("** Options:",str(options))
+		
 	# Construct lists of RE matches for match, exclude, excludepage
 	if options.cs:
 		reflags= 0
@@ -477,16 +482,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 	if not os.path.exists(source):
 		exit("Error: Source '{0}' does not exist.".format(source))
 		
-	if os.path.isfile(source):
-		# Change around options to handle single file
-		options.match=["{0}$".format(re.escape(os.path.basename(source)))]
-		#options.match=True
-		# options.copy=True # This'll almost always be the required option, make it default?
-		source=os.path.dirname(source)
-		if options.verbose>1:
-			print("** Switching from filemode to dirmode")
-			print("** Options:",str(options))
-			#print("** Match: {0}".format(match))
+
 	
 	if not os.path.isdir(source):
 		exit("Error: Source '{0}' is not a file or folder.".format(source))
@@ -520,8 +516,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 			if options.verbose>2:
 				print ("*** File: {0}".format(leaf))
 				
-			# Continue if excluded by match
-			# xor is picky about types so force re.search result into boolean
+			# Check for match/exclude setting matchflag
 			if matchlist :
 				matchflag=False
 				for m in matchlist:
@@ -548,10 +543,13 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 				rescount["excluded"] += 1
 				continue
 			
+			if options.noconvert:
+				convertflag=False
+			else:
+				# Check file extension to decide if we're converting or proceeding to copy
+				convertflag=re.search(CBxMatch,leaf)
 				
-			# Check CBR
-			isCBx=re.search(CBxMatch,leaf)
-			if not(isCBx or options.copy):
+			if not(convertflag or options.copy):
 				continue
 			
 			if not os.path.isdir(outdir):
@@ -572,7 +570,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 					print("* ResultSkipped: {0}".format(infile))
 				continue
 			
-			if isCBx:
+			if convertflag:
 				if options.verbose>2:
 					print ("*** CBx extension detected")
 				
@@ -592,7 +590,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 						failedlist.append(infile)
 				continue
 			
-			# not isCBx so options.copy is set
+			# not convertflag so options.copy is set
 			if options.verbose>2:
 				print ("***   No CBx extension detected, copy option set")
 			if options.whatif:
