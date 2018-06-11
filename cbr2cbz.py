@@ -41,7 +41,7 @@ def cbr2cbzclean():
 
 # Function that takes input and output file names and converts from CBR to CBZ
 # Returns True if managed to create .CBZ and False on error
-def cbr2cbz(infile, outfile,verbose=0,excludepagelist=[],shrink=False,shrinkKB=300,shrinkQual=40,shrinkHeight=1500,whatif=False):
+def cbr2cbz(infile, outfile,verbose=0,matchpagelist=[],excludepagelist=[],shrink=False,shrinkKB=300,shrinkQual=40,shrinkHeight=1500,whatif=False):
 	if not os.path.isfile(infile):
 		print("ERROR - infile doesn't exist")
 		return(False)
@@ -129,6 +129,33 @@ def cbr2cbz(infile, outfile,verbose=0,excludepagelist=[],shrink=False,shrinkKB=3
 				print(format(sys.exc_info()[0]))
 			print ("*** {0}".format(output))			
 		# End if is_zipfile() unrar method
+	
+	# Check what files need to be excluded
+	for root,dirs,files in os.walk(cbr2cbztemp):
+		for leaf in files:
+			dirs.sort()
+			files.sort()			
+			if matchpagelist:
+				epf = True # exclude page flag
+				for m in matchpagelist:
+					# leaf for now, consider using folder as well
+					if re.search(m,leaf)!=None:
+						epf=False
+						break
+			else:
+				epf=False
+			
+			if excludepagelist and not epf:
+				for m in excludepagelist:
+					# leaf for now, consider using folder as well
+					if re.search(m,leaf)!=None:
+						epf=True
+						break
+			if epf:
+				if verbose>3:
+					print("**** Excluding page {0} - {1}".format(infile,leaf))
+				os.unlink(os.path.join(root,leaf))	
+				continue
 	
 	# Shrink archive
 	if shrink:
@@ -254,24 +281,16 @@ def cbr2cbz(infile, outfile,verbose=0,excludepagelist=[],shrink=False,shrinkKB=3
 	# Collate a list of all files and force sort order into zip
 	zipfiles=[] #os.listdir(cbr2cbztemp)
 	for root,dirs,files in os.walk(cbr2cbztemp):
+		dirs.sort()
+		files.sort()		
 		if verbose>2:
 			print("*** Adding zip directory : {0} - files:{1} ".format(root,len(files)))
-		if len(files) > 0:
-			for leaf in files:
-				if excludepagelist:
-					epf = False # Exclude page flag
-					for m in excludepagelist:
-						# leaf for now, consider using folder as well
-						if re.search(m,leaf)!=None:
-							epf=True
-							break
-					if epf:
-						if verbose>3:
-							print("**** Excluding page {0} - {1}".format(infile,leaf))
-						continue
-				addfile=os.path.join(root,leaf)
-				zipfiles.append(addfile.replace(cbr2cbztemp+'/',''))			
-	zipfiles.sort()
+		for leaf in files:
+			addfile=os.path.join(root,leaf)
+			zipfiles.append(addfile.replace(cbr2cbztemp+'/',''))
+			if verbose>3:
+				print("**** Adding zip list file : {0}".format(leaf))		
+	zipfiles.sort() # To be sure, test 
 
 	# Compress a new cbz using zipfile
 	if verbose>1:
@@ -359,6 +378,8 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 	parser.add_argument("-f","--flat",default=False,action="store_true", dest="flat",help="Flat mode - do not create output subdirectories")
 	parser.add_argument("-m","--match",default=[],action="append", dest="match",help="only process paths matching Regular Expression")
 	parser.add_argument("-e","--exclude",default=[],action="append", dest="exclude",help="exclude source files matching Regular Expression")
+	parser.add_argument("--matchpage",default=[],action="append", dest="matchpage",help="include only page matching Regular Expression")
+	parser.add_argument("--matchpagefile",default=False,action="store", help="include pages matching RE in file")
 	parser.add_argument("--excludepage",default=[],action="append", dest="excludepage",help="exclude page matching Regular Expression")
 	parser.add_argument("--excludepagefile",default=False,action="store", help="exclude pages matching RE in file")
 	#parser.add_argument("-i","--ignorecase",default=False,action="store_true", dest="ignorecase",help="ignore case in RE matching -m")
@@ -410,7 +431,19 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 		excludelist = [re.compile(x.rstrip(),reflags) for x in options.exclude]
 	else:
 		excludelist=[]
-		
+
+	matchpagelist=[]
+	if options.matchpagefile:
+		try:
+			f=os.path.abspath(os.path.expanduser(options.matchpagefile))
+			text_file = open(f, "r")
+			matchpagelist = matchpagelist + [re.compile(x.rstrip(),reflags) for x in text_file.readlines()]
+			text_file.close()
+		except:
+			exit("Error loading excluse page file")
+	if options.matchpage:
+		matchpagelist = matchpagelist + [re.compile(x.rstrip(),reflags) for x in options.matchpage]
+
 	excludepagelist=[]
 	if options.excludepagefile:
 		try:
@@ -419,16 +452,17 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 			excludepagelist = excludepagelist + [re.compile(x.rstrip(),reflags) for x in text_file.readlines()]
 			text_file.close()
 		except:
-			exit("Error loading exclue page file")
+			exit("Error loading excluse page file")
 		
 	if options.excludepage:
 		excludepagelist = excludepagelist + [re.compile(x.rstrip(),reflags) for x in options.excludepage]
 
 	if options.verbose>3:
-		print("excludepagelist:",excludepagelist)
+		print ("** Options:",str(options))
 		print("matchlist:",matchlist)
 		print("excludelist:",excludelist)
-		print ("** Options:",str(options))
+		print("matchpagelist:",excludepagelist)
+		print("excludepagelist:",excludepagelist)
 		
 	source= os.path.abspath(os.path.expanduser(options.source))
 	dest= os.path.abspath(os.path.expanduser(options.dest))
@@ -547,7 +581,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 				else:
 					if options.verbose>0:
 						print ("* Converting {0}".format(infile))
-					if(cbr2cbz(infile,outfile,verbose=options.verbose,excludepagelist=excludepagelist,shrink=options.shrink,shrinkKB=options.shrinkKB,shrinkQual=options.shrinkQual,shrinkHeight=options.shrinkHeight,whatif=options.whatif)):
+					if(cbr2cbz(infile,outfile,verbose=options.verbose,matchpagelist=matchpagelist,excludepagelist=excludepagelist,shrink=options.shrink,shrinkKB=options.shrinkKB,shrinkQual=options.shrinkQual,shrinkHeight=options.shrinkHeight,whatif=options.whatif)):
 						rescount['convert'] += 1
 						if options.verbose>0:
 							print("* ResultConvert: {0}".format(infile))
