@@ -194,7 +194,7 @@ def cbr2cbz(infile, outfile,verbose=0,excludepagelist=[],shrink=False,shrinkKB=3
 					continue # Don't attempt shrinking this file as we can't rename it
 				
 				# We expect wider pages to be larger so our allowance is based on the aspect ratio (imgar)
-				# Shrink limit is shrinkKB * 1000 * 1.5 * imgar. AR is typically about .65 for single pages - hence 1.5 mutliplier
+				# Shrink limit is shrinkKB * 1000 * 1.5 * imgar. AR is typically about .65 for single pages - hence 1.5 multiplier
 				# If a page is less than shrinklimit skip shrink attempt (to save time and image quality)
 				shrinklimit=(imgar*1.5*shrinkKB*1000)
 				if imgsize>shrinklimit:
