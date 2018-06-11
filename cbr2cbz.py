@@ -334,10 +334,10 @@ Copy files in CBR/, converting CBR files:
 	cbr2cbz.py -c CBR/ /tmp/test/
 
 Copy all Cat Conversation files to /tmp/test, without creating subdirectories
-	cbr2cbz.py --copyonly -f -m "Cat.*Conv" CBR/ /tmp/test
+	cbr2cbz.py --noconvert -f -m "Cat.*Conv" CBR/ /tmp/test
 
 Copy all files to /tmp/test, excluding Thumbs.db
-	cbr2cbz.py --copyonly -e "Thumbs.db" CBR/ /tmp/test
+	cbr2cbz.py --noconvert -e "Thumbs.db" CBR/ /tmp/test
 
 Convert CBR and CBZ files to low quality format and place in CatConv
 	cbr2cbz.py -z --shrink CBR/ CatConv/
@@ -350,7 +350,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 	#parser.usage=usage
 	parser.add_argument("--examples",default=False,action="store_true",help="view this help with additional (requires dummy source/destination arguments)")
 	parser.add_argument("-c","--copy",default=False,action="store_true", dest="copy",help="copy non CBR files to destination")
-	parser.add_argument("--copyonly",default=False,action="store_true", help="copy CBR/CBZ instead of converting (implies -c)")
+	parser.add_argument("--noconvert",default=False,action="store_true", help="copy CBR/CBZ instead of converting (implies -c)")
 	parser.add_argument("-z","--zipforce",default=False,action="store_true", dest="zipforce",help="re-zip CBZ archives (remove wasteful compression)")
 	parser.add_argument("--shrink",default=False,action="store_true", dest="shrink",help="[ WARNING - LOSSY ] aggressively shrink large page files with JPEG")
 	parser.add_argument("--shrinkKB",default=300, type=int,action="store",help="with --shrink process pages larger than this many KB (default = 300)")
@@ -390,16 +390,16 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 	else:
 		CBxMatch='\.[Cc][bB][rR]$'
 	
-	if options.copyonly:
+	if options.noconvert:
 		options.copy=True
-		# Kludge - don't recognise archives
+		# Kludge - set a bogus search parameter to not recognize archives
 		CBxMatch="^KULDGEY.kludge$"
 	
+	# Construct lists of RE matches for match, exclude, excludepage
 	if options.cs:
 		reflags= 0
 	else:
 		reflags= re.I
-		
 		
 	if options.match:
 		matchlist = [re.compile(x.rstrip(),reflags) for x in options.match]

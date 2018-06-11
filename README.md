@@ -42,7 +42,7 @@ optional arguments:
   --examples            view this help with additional (requires dummy
                         source/destination arguments)
   -c, --copy            copy non CBR files to destination
-  --copyonly            copy CBR/CBZ instead of converting (implies -c)
+  --noconvert           copy CBR/CBZ instead of converting (implies -c)
   -z, --zipforce        re-zip CBZ archives (remove wasteful compression)
   --shrink              [ WARNING - LOSSY ] aggressively shrink large page
                         files with JPEG
@@ -84,10 +84,10 @@ Copy files in CBR/, converting CBR files:
 	cbr2cbz.py -c CBR/ /tmp/test/
 
 Copy all Cat Conversation files to /tmp/test, without creating subdirectories
-	cbr2cbz.py --copyonly -f -m "Cat.*Conv" CBR/ /tmp/test
+	cbr2cbz.py --noconvert -f -m "Cat.*Conv" CBR/ /tmp/test
 
 Copy all files to /tmp/test, excluding Thumbs.db
-	cbr2cbz.py --copyonly -e "Thumbs.db" CBR/ /tmp/test
+	cbr2cbz.py --noconvert -e "Thumbs.db" CBR/ /tmp/test
 
 Convert CBR and CBZ files to low quality format and place in CatConv
 	cbr2cbz.py -z --shrink CBR/ CatConv/
