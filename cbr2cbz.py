@@ -322,7 +322,7 @@ Pattern matching options (-m, -e, --pageexclude) may be used more than once to m
 To see examples use "--examples a b" (removing dummy source/destination requirement is a work in progress)
 """
 	examples="""
-	Examples:
+Examples:
 
 Convert all *.CBR files in directory CBR/ to CBZ format and put the output in /tmp/test
 	cbr2cbz.py CBR/ /tmp/test/
@@ -348,7 +348,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 """
 	parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,description=description,epilog=epilog)
 	#parser.usage=usage
-	parser.add_argument("--examples",default=False,action="store_true",help="view this help with additional (requires dummy source/destination arguments)")
+	parser.add_argument("--examples",default=False,action="store_true",help="view this help with additional examples (requires dummy source/destination arguments)")
 	parser.add_argument("-c","--copy",default=False,action="store_true", dest="copy",help="copy non CBR files to destination")
 	parser.add_argument("--noconvert",default=False,action="store_true", help="copy CBR/CBZ instead of converting (implies -c)")
 	parser.add_argument("-z","--zipforce",default=False,action="store_true", dest="zipforce",help="re-zip CBZ archives (remove wasteful compression)")

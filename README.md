@@ -39,7 +39,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --examples            view this help with additional (requires dummy
+  --examples            view this help with additional examples (requires dummy
                         source/destination arguments)
   -c, --copy            copy non CBR files to destination
   --noconvert           copy CBR/CBZ instead of converting (implies -c)
