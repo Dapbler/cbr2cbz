@@ -19,14 +19,16 @@ Additional optional features include:
 * Copy non CBR/CBZ files
 * Flat mode - output all files in the top level of the destination folder
 * Pattern matching to decide what files to copy/convert (multiple pattern optons may be set and all are checked)
-* Exclude archived page names matching regular expressions (from file or command line)
+* Including/exclude archived page names matching regular expressions (eg. include pages 001-009 for a test sample)
 * Shrinking of page (lossy conversion) for non-archival use on devices with limited storage/memory
 * Shrinking heuristics and compression settings now exposed via --shrinkXXXX settings
 
 <pre>
-usage: cbr2cbz.py [-h] [--examples] [-c] [--copyonly] [-z] [--shrink]
+
+usage: cbr2cbz.py [-h] [--examples] [-c] [--noconvert] [-z] [--shrink]
                   [--shrinkKB SHRINKKB] [--shrinkQual SHRINKQUAL]
                   [--shrinkHeight SHRINKHEIGHT] [-f] [-m MATCH] [-e EXCLUDE]
+                  [--matchpage MATCHPAGE] [--matchpagefile MATCHPAGEFILE]
                   [--excludepage EXCLUDEPAGE]
                   [--excludepagefile EXCLUDEPAGEFILE] [--cs] [-v] [-w]
                   source dest
@@ -39,8 +41,8 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --examples            view this help with additional examples (requires dummy
-                        source/destination arguments)
+  --examples            view this help with additional examples (requires
+                        dummy source/destination arguments)
   -c, --copy            copy non CBR files to destination
   --noconvert           copy CBR/CBZ instead of converting (implies -c)
   -z, --zipforce        re-zip CBZ archives (remove wasteful compression)
@@ -58,6 +60,10 @@ optional arguments:
                         only process paths matching Regular Expression
   -e EXCLUDE, --exclude EXCLUDE
                         exclude source files matching Regular Expression
+  --matchpage MATCHPAGE
+                        include only page matching Regular Expression
+  --matchpagefile MATCHPAGEFILE
+                        include pages matching RE in file
   --excludepage EXCLUDEPAGE
                         exclude page matching Regular Expression
   --excludepagefile EXCLUDEPAGEFILE
@@ -72,7 +78,7 @@ Pattern matching options (-m, -e, --pageexclude) may be used more than once to m
 
 To see examples use "--examples a b" (removing dummy source/destination requirement is a work in progress)
 
-	Examples:
+Examples:
 
 Convert all *.CBR files in directory CBR/ to CBZ format and put the output in /tmp/test
 	cbr2cbz.py CBR/ /tmp/test/
