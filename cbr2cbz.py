@@ -440,7 +440,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 			matchpagelist = matchpagelist + [re.compile(x.rstrip(),reflags) for x in text_file.readlines()]
 			text_file.close()
 		except:
-			exit("Error loading excluse page file")
+			exit("Error loading match page file")
 	if options.matchpage:
 		matchpagelist = matchpagelist + [re.compile(x.rstrip(),reflags) for x in options.matchpage]
 
@@ -452,7 +452,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 			excludepagelist = excludepagelist + [re.compile(x.rstrip(),reflags) for x in text_file.readlines()]
 			text_file.close()
 		except:
-			exit("Error loading excluse page file")
+			exit("Error loading exclude page file")
 		
 	if options.excludepage:
 		excludepagelist = excludepagelist + [re.compile(x.rstrip(),reflags) for x in options.excludepage]
@@ -461,7 +461,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 		print ("** Options:",str(options))
 		print("matchlist:",matchlist)
 		print("excludelist:",excludelist)
-		print("matchpagelist:",excludepagelist)
+		print("matchpagelist:",matchpagelist)
 		print("excludepagelist:",excludepagelist)
 		
 	source= os.path.abspath(os.path.expanduser(options.source))
