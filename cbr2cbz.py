@@ -468,14 +468,15 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 			
 	if os.path.isfile(source):
 		# Change around options to handle single file
-		matchlist=["^{0}$".format(re.escape(source))]
+		singlefilematch="^{0}$".format(re.escape(source))
 		options.copy=True
 		source=os.path.dirname(source)
 		if options.verbose>1:
 			print("** Switching from filemode to dirmode")
 			print("** Source: {0}".format(source))
 			print("** Dest: {0}".format(dest))
-			print("** Matchlist:",str(matchlist))
+	else:
+		singlefilematch=False
 	
 	if not os.path.isdir(source):
 		exit("Error: Source '{0}' is not a file or folder.".format(source))
@@ -512,6 +513,12 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 		for leaf in files:
 			infile= os.path.join(root,leaf)
 			
+			if singlefilematch:
+				if not re.match(singlefilematch,infile):
+					if options.verbose>3:
+						print("**** Single file mode. Skipping: {0}".format(leaf))
+					continue
+					
 			if options.verbose>2:
 				print ("*** File: {0}".format(leaf))
 				
@@ -602,7 +609,12 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 				if options.verbose>0:
 					print("* ResultCopied: {0}".format(infile))
 			continue # Next file
-							
+		
+		# In single file mode we'll never need to go beyond the source folder
+		if singlefilematch:
+			if options.verbose>1:
+				print("** Single file mode. Exiting after first directory.")
+			break
 
 	# Clean out the temporary folder
 	cbr2cbzclean()
