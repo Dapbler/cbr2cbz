@@ -132,9 +132,9 @@ def cbr2cbz(infile, outfile,verbose=0,matchpagelist=[],excludepagelist=[],shrink
 	
 	# Check what files need to be excluded
 	for root,dirs,files in os.walk(cbr2cbztemp):
-		for leaf in files:
-			dirs.sort()
-			files.sort()			
+		dirs.sort()
+		files.sort()
+		for leaf in files:	
 			if matchpagelist:
 				epf = True # exclude page flag
 				for m in matchpagelist:
