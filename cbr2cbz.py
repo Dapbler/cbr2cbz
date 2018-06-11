@@ -67,7 +67,7 @@ def cbr2cbz(infile, outfile,verbose=0,matchpagelist=[],excludepagelist=[],shrink
 	# Output folder should exist (created in main()) but leave check here anyway			
 	if not os.path.isdir(os.path.dirname(outfile)):
 		os.makedirs(os.path.dirname(outfile))
-			
+	
 	# New - use is_zipfile. We trust zipfile more than the external unrar
 	if zipfile.is_zipfile(infile):
 		# Now using zipfile - precondition: is_zipfile() is True
@@ -152,8 +152,8 @@ def cbr2cbz(infile, outfile,verbose=0,matchpagelist=[],excludepagelist=[],shrink
 						epf=True
 						break
 			if epf:
-				if verbose>3:
-					print("**** Excluding page {0} - {1}".format(infile,leaf))
+				if verbose>2:
+					print("*** Excluding page: {0}".format(leaf))
 				os.unlink(os.path.join(root,leaf))	
 				continue
 	
@@ -468,15 +468,18 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 			
 	if os.path.isfile(source):
 		# Change around options to handle single file
-		singlefilematch="^{0}$".format(re.escape(source))
+		#singlefilematch="^{0}$".format(re.escape(source))
+		# New way - forcing file/dir walk to just be the one file
+		singlefile=os.path.basename(source)
 		options.copy=True
 		source=os.path.dirname(source)
 		if options.verbose>1:
 			print("** Switching from filemode to dirmode")
 			print("** Source: {0}".format(source))
-			print("** Dest: {0}".format(dest))
+			#print("** Dest: {0}".format(dest))
 	else:
-		singlefilematch=False
+		#singlefilematch=False
+		singlefile=False
 	
 	if not os.path.isdir(source):
 		exit("Error: Source '{0}' is not a file or folder.".format(source))
@@ -492,13 +495,22 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 	failedlist=[]
 	
 	for root,dirs,files in os.walk(source):
+		
+		# A bit kludgey, but restrict dirs and files to the single file for SFM
+		if singlefile:
+			#dirs=[]
+			del dirs[:]
+			files=[singlefile]
+		
 		dirs.sort()
 		files.sort()
+		
 		if re.match(re.escape(dest),root):
 			# Current source dir is under the destination - this could be BAD
 			if options.verbose>1:
 				print("** Skipping dir - inside destination: {0}".format(root))
 			continue
+		
 		if options.verbose>1:
 			print("** Directory : {0} - subdirs:{1} files:{2} ".format(root,len(dirs),len(files)))
 		
@@ -512,13 +524,14 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 		
 		for leaf in files:
 			infile= os.path.join(root,leaf)
-			
+			'''
 			if singlefilematch:
+				# This shouldn't happen but will be useful for investigation of os.walk dirs=[] issues
 				if not re.match(singlefilematch,infile):
-					if options.verbose>3:
-						print("**** Single file mode. Skipping: {0}".format(leaf))
+					if options.verbose>2:
+						print("*** Single file mode. Skipping: {0}".format(leaf))
 					continue
-					
+			'''
 			if options.verbose>2:
 				print ("*** File: {0}".format(leaf))
 				
@@ -531,7 +544,6 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 						break
 			else:
 				matchflag=True
-
 				
 			if excludelist and matchflag:
 				for m in excludelist:
@@ -566,7 +578,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 						print ("**   Creating directory {0}".format(outdir))
 					os.makedirs(outdir)
 
-			outfile=os.path.join(outdir,re.sub('\.[Cc][bB][rR]$','.cbz',leaf))
+			outfile=os.path.join(outdir,leaf)
 			outfile=outfile.replace(u'\xa0', ' ')
 			outfile=outfile.encode('ascii', 'replace').decode('ascii', 'replace')
 			
@@ -574,9 +586,9 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 				rescount["skipped"] += 1
 				if options.verbose>0:
 					print("* ResultSkipped: {0}".format(infile))
-				continue
 			
-			if convertflag:
+			elif convertflag:
+				outfile=re.sub('\.[Cc][bB][rR]$','.cbz',outfile)
 				if options.verbose>2:
 					print ("*** CBx extension detected")
 				
@@ -588,34 +600,43 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 					if(cbr2cbz(infile,outfile,verbose=options.verbose,matchpagelist=matchpagelist,excludepagelist=excludepagelist,shrink=options.shrink,shrinkKB=options.shrinkKB,shrinkQual=options.shrinkQual,shrinkHeight=options.shrinkHeight,whatif=options.whatif)):
 						rescount['convert'] += 1
 						if options.verbose>0:
-							print("* ResultConvert: {0}".format(infile))
+							oldsize=os.stat(infile).st_size
+							newsize=os.stat(outfile).st_size
+							print("* ResultConvert: {0} {1}/{2} MB {3}".format(round(newsize/oldsize,3),round(newsize/1000000,1),round(oldsize/1000000,1),infile))
 					else:
 						rescount['failed'] += 1
 						if options.verbose>0:
 							print("* ResultFailed: {0}".format(infile))
 						failedlist.append(infile)
-				continue
-			
-			# not convertflag so options.copy is set
-			if options.verbose>2:
-				print ("***   No CBx extension detected, copy option set")
-			if options.whatif:
-				print ("WHATIF: Copy to {0} : {1}".format(outdir,leaf))
 			else:
-				if options.verbose>0:
-					print ("* Copying {0}".format(os.path.join(root,leaf)))
-				shutil.copyfile(os.path.join(root,leaf),os.path.join(outdir,leaf))
-				rescount['copy'] += 1
-				if options.verbose>0:
-					print("* ResultCopied: {0}".format(infile))
-			continue # Next file
-		
+				# not convertflag so options.copy is set
+				if options.verbose>2:
+					print ("***   No CBx extension detected, copy option set")
+				if options.whatif:
+					print ("WHATIF: Copy to {0} : {1}".format(outdir,leaf))
+				else:
+					if options.verbose>0:
+						print ("* Copying {0}".format(os.path.join(root,leaf)))
+					shutil.copyfile(os.path.join(root,leaf),os.path.join(outdir,leaf))
+					rescount['copy'] += 1
+					if options.verbose>0:
+						print("* ResultCopied: {0}".format(infile))
+			'''
+			if singlefilematch:
+				if options.verbose>3:
+					print("**** Single file mode. Breaking file walk.")
+				break
+			'''
+	'''
 		# In single file mode we'll never need to go beyond the source folder
-		if singlefilematch:
+		# del dirs[:] should mean we don't need this
+		if singlefile:
 			if options.verbose>1:
-				print("** Single file mode. Exiting after first directory.")
+				print(dirs)
+				print(root)
+				print("** Single file mode. Exiting directory walk.")
 			break
-
+	'''
 	# Clean out the temporary folder
 	cbr2cbzclean()
 	if options.verbose>0:
