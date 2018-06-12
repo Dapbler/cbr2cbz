@@ -19,7 +19,7 @@ import zipfile
 # New - use /tmp (which is in RAM/Swap tmpfs) for speed and reduced SSD/drive wear
 cbr2cbztemp = os.path.abspath(os.path.expanduser("/tmp/cbr2cbztemp-u{0}/p{1}".format(os.getuid(),os.getpid())))
 
-def cbr2cbzclean(create=True):
+def cbr2cbzclean(create=True,delete=False):
 	# Creates (if necessary) and cleans the temporary folder
 	if os.path.exists(cbr2cbztemp):
 		if os.path.isdir(cbr2cbztemp):
@@ -32,6 +32,8 @@ def cbr2cbzclean(create=True):
 					shutil.rmtree(filename)
 				else:
 					exit("ERROR: Don't know how to handle removing '{0}'".format(filename))
+			if delete:
+			    shutil.rmtree(cbr2cbztemp)
 		else:
 			exit("Temp directory {0} exists but is not a directory.".format(cbr2cbztemp))
 	elif create:
@@ -619,7 +621,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 					print("* ResultCopied: {0}".format(infile))
 
 	# Clean out the temporary folder
-	cbr2cbzclean(create=False)
+	cbr2cbzclean(create=False,delete=True)
 	if options.verbose>0:
 		print("* Results:",rescount)
 		for countkey in rescount.keys():
