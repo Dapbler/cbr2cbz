@@ -498,7 +498,6 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 		
 		# A bit kludgey, but restrict dirs and files to the single file for SFM
 		if singlefile:
-			#dirs=[]
 			del dirs[:]
 			files=[singlefile]
 		
@@ -524,14 +523,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 		
 		for leaf in files:
 			infile= os.path.join(root,leaf)
-			'''
-			if singlefilematch:
-				# This shouldn't happen but will be useful for investigation of os.walk dirs=[] issues
-				if not re.match(singlefilematch,infile):
-					if options.verbose>2:
-						print("*** Single file mode. Skipping: {0}".format(leaf))
-					continue
-			'''
+			
 			if options.verbose>2:
 				print ("*** File: {0}".format(leaf))
 				
@@ -586,12 +578,12 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 				rescount["skipped"] += 1
 				if options.verbose>0:
 					print("* ResultSkipped: {0}".format(infile))
+				continue
 			
-			elif convertflag:
+			if convertflag:
 				outfile=re.sub('\.[Cc][bB][rR]$','.cbz',outfile)
-				if options.verbose>2:
-					print ("*** CBx extension detected")
-				
+				#if options.verbose>2:
+				#	print ("*** CBx extension detected")
 				if options.whatif:
 					print("WHATIF: Convert CBx >cbr2cbz({0},{1})".format(infile,outfile))
 				else:
@@ -608,35 +600,21 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 						if options.verbose>0:
 							print("* ResultFailed: {0}".format(infile))
 						failedlist.append(infile)
+				continue
+				
+			# not convertflag so options.copy is set
+			if options.verbose>2:
+				print ("***   No CBx extension detected, copy option set")
+			if options.whatif:
+				print ("WHATIF: Copy to {0} : {1}".format(outdir,leaf))
 			else:
-				# not convertflag so options.copy is set
-				if options.verbose>2:
-					print ("***   No CBx extension detected, copy option set")
-				if options.whatif:
-					print ("WHATIF: Copy to {0} : {1}".format(outdir,leaf))
-				else:
-					if options.verbose>0:
-						print ("* Copying {0}".format(os.path.join(root,leaf)))
-					shutil.copyfile(os.path.join(root,leaf),os.path.join(outdir,leaf))
-					rescount['copy'] += 1
-					if options.verbose>0:
-						print("* ResultCopied: {0}".format(infile))
-			'''
-			if singlefilematch:
-				if options.verbose>3:
-					print("**** Single file mode. Breaking file walk.")
-				break
-			'''
-	'''
-		# In single file mode we'll never need to go beyond the source folder
-		# del dirs[:] should mean we don't need this
-		if singlefile:
-			if options.verbose>1:
-				print(dirs)
-				print(root)
-				print("** Single file mode. Exiting directory walk.")
-			break
-	'''
+				if options.verbose>0:
+					print ("* Copying {0}".format(os.path.join(root,leaf)))
+				shutil.copyfile(os.path.join(root,leaf),os.path.join(outdir,leaf))
+				rescount['copy'] += 1
+				if options.verbose>0:
+					print("* ResultCopied: {0}".format(infile))
+
 	# Clean out the temporary folder
 	cbr2cbzclean()
 	if options.verbose>0:
