@@ -277,10 +277,10 @@ def cbr2cbz(infile, outfile,verbose=0,matchpagelist=[],excludepagelist=[],shrink
 							newname=re.sub("\."+re.escape(imgext)+"$",".jpg",shrinkfile)
 						os.rename(shrinkfile+".shrink.jpg",newname)
 						if verbose>2:
-							print("*** Shrank    {0} : {1}/{2} {3}".format(leaf, newsize, oldsize, round(newsize/oldsize,2)))
+							print("*** Shrank    {3} {1}/{2} : {0}".format(leaf, newsize, oldsize, round(newsize/oldsize,2)))
 					else:
 						if verbose>2:
-							print("*** No shrink {0} : {1}/{2} {3}".format(leaf, newsize, oldsize, round(newsize/oldsize,2)))
+							print("*** No shrink {3} {1}/{2} : {0}".format(leaf, newsize, oldsize, round(newsize/oldsize,2)))
 						os.unlink(shrinkfile+".shrink.jpg")
 					
 	# Collate a list of all files and force sort order into zip
