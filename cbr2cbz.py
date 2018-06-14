@@ -54,7 +54,7 @@ def cbr2cbz(infile, outfile,verbose=0,matchpagelist=[],excludepagelist=[],shrink
 	if os.path.exists(outfile):
 		if verbose>0:
 			# This shouldn't happen, test is done in main(). Leave old check here anyway
-			print ("ERROR: {0} exists.".format(infile))
+			print ("ERROR: {0} exists.".format(outfile))
 		return(False)
 
 	# Clean the temporary folder
@@ -578,7 +578,9 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 			outfile=os.path.join(outdir,leaf)
 			outfile=outfile.replace(u'\xa0', ' ')
 			outfile=outfile.encode('ascii', 'replace').decode('ascii', 'replace')
-			
+			if convertflag:
+				outfile=re.sub('\.[Cc][bB][rR]$','.cbz',outfile)
+
 			if os.path.exists(outfile):
 				rescount["skipped"] += 1
 				if options.verbose>0:
@@ -586,9 +588,6 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 				continue
 			
 			if convertflag:
-				outfile=re.sub('\.[Cc][bB][rR]$','.cbz',outfile)
-				#if options.verbose>2:
-				#	print ("*** CBx extension detected")
 				if options.whatif:
 					print("WHATIF: Convert CBx >cbr2cbz({0},{1})".format(infile,outfile))
 				else:
