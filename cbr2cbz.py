@@ -382,7 +382,9 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 	parser.add_argument("--shrinkHeight",default=1500, type=int,action="store",help="with --shrink sets maximum pixel height of page (default = 1500)")
 	parser.add_argument("-f","--flat",default=False,action="store_true", dest="flat",help="Flat mode - do not create output subdirectories")
 	parser.add_argument("-m","--match",default=[],action="append", dest="match",help="only process paths matching Regular Expression")
+	parser.add_argument("--matchfile",default=False,action="store", help="process source files matching RE in file")
 	parser.add_argument("-e","--exclude",default=[],action="append", dest="exclude",help="exclude source files matching Regular Expression")
+	parser.add_argument("--excludefile",default=False,action="store", help="exclude source files matching RE in file")
 	parser.add_argument("--matchpage",default=[],action="append", dest="matchpage",help="include only page matching Regular Expression")
 	parser.add_argument("--matchpagefile",default=False,action="store", help="include pages matching RE in file")
 	parser.add_argument("--excludepage",default=[],action="append", dest="excludepage",help="exclude page matching Regular Expression")
@@ -419,16 +421,40 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 		reflags= 0
 	else:
 		reflags= re.I
-		
+		'''
 	if options.match:
 		matchlist = [re.compile(x.rstrip(),reflags) for x in options.match]
 	else:
 		matchlist=[]
-		
+		'''
+	matchlist=[]
+	if options.matchfile:
+		try:
+			f=os.path.abspath(os.path.expanduser(options.matchfile))
+			text_file = open(f, "r")
+			matchlist = matchlist + [re.compile(x.rstrip(),reflags) for x in text_file.readlines()]
+			text_file.close()
+		except:
+			exit("Error loading match page file")
+	if options.match:
+		matchlist = matchlist + [re.compile(x.rstrip(),reflags) for x in options.match]
+		'''
 	if options.exclude:
 		excludelist = [re.compile(x.rstrip(),reflags) for x in options.exclude]
 	else:
 		excludelist=[]
+'''
+	excludelist=[]
+	if options.excludefile:
+		try:
+			f=os.path.abspath(os.path.expanduser(options.excludefile))
+			text_file = open(f, "r")
+			excludelist = excludelist + [re.compile(x.rstrip(),reflags) for x in text_file.readlines()]
+			text_file.close()
+		except:
+			exit("Error loading exclude page file")
+	if options.exclude:
+		excludelist = excludelist + [re.compile(x.rstrip(),reflags) for x in options.exclude]
 
 	matchpagelist=[]
 	if options.matchpagefile:
