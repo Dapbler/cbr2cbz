@@ -46,7 +46,7 @@ def cbr2cbzclean(create=True,delete=False):
 
 # Function that takes input and output file names and converts from CBR to CBZ
 # Returns True if managed to create .CBZ and False on error
-def cbr2cbz(infile, outfile,verbose=0,matchpagelist=[],excludepagelist=[],shrink=False,shrinkKB=300,shrinkQual=40,shrinkHeight=1500,whatif=False):
+def cbr2cbz(infile, outfile,verbose=0,matchpagelist=[],excludepagelist=[],shrink=False,shrinkKB=300,shrinkGray=False,shrinkQual=40,shrinkHeight=1500,whatif=False):
 	if not os.path.isfile(infile):
 		print("ERROR - infile doesn't exist")
 		return(False)
@@ -229,8 +229,11 @@ def cbr2cbz(infile, outfile,verbose=0,matchpagelist=[],excludepagelist=[],shrink
 				# Shrink limit is shrinkKB * 1000 * 1.5 * imgar. AR is typically about .65 for single pages - hence 1.5 multiplier
 				# If a page is less than shrinklimit skip shrink attempt (to save time and image quality)
 				shrinklimit=(imgar*1.5*shrinkKB*1000)
-				if imgsize>shrinklimit:
-					subcom=["convert",shrinkfile,"-quality", str(shrinkQual), "-resize", "x"+str(shrinkHeight)+">",shrinkfile+".shrink.jpg"]
+				if imgsize>shrinklimit or shrinkGray:
+					if shrinkGray:
+						subcom=["convert",shrinkfile,"-quality", str(shrinkQual),"-grayscale","Rec601Luma", "-resize", "x"+str(shrinkHeight)+">",shrinkfile+".shrink.jpg"]
+					else:
+						subcom=["convert",shrinkfile,"-quality", str(shrinkQual), "-resize", "x"+str(shrinkHeight)+">",shrinkfile+".shrink.jpg"]
 					if verbose>4:
 						print ("***** {0}".format(subcom))
 					try:
@@ -269,7 +272,7 @@ def cbr2cbz(infile, outfile,verbose=0,matchpagelist=[],excludepagelist=[],shrink
 					# Do a check the new file is smaller before replacing
 					oldsize=os.stat(shrinkfile).st_size
 					newsize=os.stat(shrinkfile+".shrink.jpg").st_size
-					if (oldsize*0.9)>newsize:
+					if (oldsize*0.9)>newsize or shrinkGray:
 						os.unlink(shrinkfile) # Not necessary on POSIX
 						if imgext=="":
 							newname=shrinkfile+".jpg"
@@ -377,6 +380,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 	parser.add_argument("--noconvert",default=False,action="store_true", help="copy CBR/CBZ instead of converting (implies -c)")
 	parser.add_argument("-z","--zipforce",default=False,action="store_true", dest="zipforce",help="re-zip CBZ archives (remove wasteful compression)")
 	parser.add_argument("--shrink",default=False,action="store_true", dest="shrink",help="[ WARNING - LOSSY ] aggressively shrink large page files with JPEG")
+	parser.add_argument("--shrinkGray",default=False,action="store_true",help="with --shrink convert all pages to grayscale")
 	parser.add_argument("--shrinkKB",default=300, type=int,action="store",help="with --shrink process pages larger than this many KB (default = 300)")
 	parser.add_argument("--shrinkQual",default=40, type=int,action="store",help="with --shrink use custom JPEG quality (default = 40)")
 	parser.add_argument("--shrinkHeight",default=1500, type=int,action="store",help="with --shrink sets maximum pixel height of page (default = 1500)")
@@ -619,7 +623,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
 				else:
 					if options.verbose>0:
 						print ("* Converting {0}".format(infile))
-					if(cbr2cbz(infile,outfile,verbose=options.verbose,matchpagelist=matchpagelist,excludepagelist=excludepagelist,shrink=options.shrink,shrinkKB=options.shrinkKB,shrinkQual=options.shrinkQual,shrinkHeight=options.shrinkHeight,whatif=options.whatif)):
+					if(cbr2cbz(infile,outfile,verbose=options.verbose,matchpagelist=matchpagelist,excludepagelist=excludepagelist,shrink=options.shrink,shrinkGray=options.shrinkGray,shrinkKB=options.shrinkKB,shrinkQual=options.shrinkQual,shrinkHeight=options.shrinkHeight,whatif=options.whatif)):
 						rescount['convert'] += 1
 						if options.verbose>0:
 							oldsize=os.stat(infile).st_size
