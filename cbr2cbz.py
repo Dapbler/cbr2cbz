@@ -4,7 +4,6 @@ cbr2cbz.py - converts CBR comic book files (RAR) to CBZ (as uncompressed zip)
 
 Requires system commands: unrar, zip
 """
-# Usage string used by optparse in main(), but it seems a shame to double up on documentation text
 
 import os
 import sys
@@ -17,7 +16,10 @@ import zipfile
 
 # Kludgy global for the temp folder (used by all the functions in one way or other)
 # New - use /tmp (which is in RAM/Swap tmpfs) for speed and reduced SSD/drive wear
-cbr2cbztemp = os.path.abspath(os.path.expanduser("/tmp/cbr2cbztemp-u{0}/p{1}".format(os.getuid(),os.getpid())))
+cbr2cbztemp = os.path.abspath(
+    os.path.expanduser(
+    "/tmp/cbr2cbztemp-u{0}/p{1}".format(os.getuid(),os.getpid()))
+    )
 
 def cbr2cbzclean(create=True,delete=False):
     # Creates (if necessary) and cleans the temporary folder
@@ -32,12 +34,12 @@ def cbr2cbzclean(create=True,delete=False):
                     shutil.rmtree(filename)
                 else:
                     exit("ERROR: Don't know how to handle removing '{0}'"
-                            .format(filename))
+                        .format(filename))
             if delete:
                 shutil.rmtree(cbr2cbztemp)
         else:
             exit("Temp directory {0} exists but is not a directory."
-                    .format(cbr2cbztemp))
+                .format(cbr2cbztemp))
     elif create:
         # temp folder doesn't exist
         print("Creating {0}".format(cbr2cbztemp))
@@ -46,7 +48,7 @@ def cbr2cbzclean(create=True,delete=False):
         # Temp directory doesn't exist and we're not creating it
         return
 
-# Function that takes input and output file names and converts from 
+# Function that takes input and output file names and converts from
 # CBR to CBZ
 # Returns True if managed to create .CBZ and False on error
 def cbr2cbz(
@@ -57,32 +59,32 @@ def cbr2cbz(
     if not os.path.isfile(infile):
         print("ERROR - infile doesn't exist")
         return(False)
-        
+
     if os.path.exists(outfile):
         if verbose>0:
-            # This shouldn't happen, test is done in main(). 
+            # This shouldn't happen, test is done in main().
             # Leave old check here anyway
             print ("ERROR: {0} exists.".format(outfile))
         return(False)
 
     # Clean the temporary folder
     cbr2cbzclean()
-            
+
     # Double check temp is empty
     if len(os.listdir(cbr2cbztemp))!=0:
         exit("ERROR: Temp folder {0} could not be emptied!"
             .format(cbr2cbztemp))
-    
+
     # Changing to temp directory is necessary to keep zip file paths short
     os.chdir(cbr2cbztemp)
     if (os.getcwd() != cbr2cbztemp):
         exit("Could not change to temp directory {0}".format(cbr2cbztemp))
-            
-    # Output folder should exist (created in main()) but leave check 
-    # here anyway            
+
+    # Output folder should exist (created in main()) but leave check
+    # here anyway
     if not os.path.isdir(os.path.dirname(outfile)):
         os.makedirs(os.path.dirname(outfile))
-    
+
     # New - use is_zipfile. We trust zipfile more than the external unrar
     if zipfile.is_zipfile(infile):
         # Now using zipfile - precondition: is_zipfile() is True
@@ -99,14 +101,14 @@ def cbr2cbz(
             listinf=myzip.infolist()
         except:
             print("ERROR: Zipfile list error: {0}".format(sys.exc_info()[0]))
-            return(False)            
-        # Extract contents - .extract() has path safety checks, 
+            return(False)
+        # Extract contents - .extract() has path safety checks,
         # extractall() does not
         for zi in listinf:
             if verbose > 2:
                 print("*** Extract: {0}".format(zi.filename))
             try:
-                myzip.extract(zi) 
+                myzip.extract(zi)
             except:
                 print("ERROR: Zip extracting: {0} - {1}"
                     .format(infile,sys.exc_info()[0]))
@@ -125,7 +127,7 @@ def cbr2cbz(
             output=subprocess.check_output(subcom)
         except subprocess.CalledProcessError as e:
             output=e.output
-            # Erroring here means that the file wasn't a zip. Couldn't unpack 
+            # Erroring here means that the file wasn't a zip. Couldn't unpack
             print("ERROR: CalledProcessError: unrar {0}".format(infile))
             if verbose > 0:
                 try:
@@ -144,14 +146,14 @@ def cbr2cbz(
                 output=output.decode("UTF-8","ignore")
             except:
                 print(format(sys.exc_info()[0]))
-            print ("*** {0}".format(output))            
+            print ("*** {0}".format(output))
         # End if is_zipfile() unrar method
-    
+
     # Check what files need to be excluded
     for root,dirs,files in os.walk(cbr2cbztemp):
         dirs.sort()
         files.sort()
-        for leaf in files:    
+        for leaf in files:
             if matchpagelist:
                 epf = True # exclude page flag
                 for m in matchpagelist:
@@ -161,7 +163,7 @@ def cbr2cbz(
                         break
             else:
                 epf=False
-            
+
             if excludepagelist and not epf:
                 for m in excludepagelist:
                     # leaf for now, consider using folder as well
@@ -171,9 +173,9 @@ def cbr2cbz(
             if epf:
                 if verbose>2:
                     print("*** Excluding page: {0}".format(leaf))
-                os.unlink(os.path.join(root,leaf))    
+                os.unlink(os.path.join(root,leaf))
                 continue
-    
+
     # Shrink archive
     if shrink:
         if verbose>1:
@@ -186,7 +188,8 @@ def cbr2cbz(
                 if verbose>3:
                     print ("*** Assessing {0}".format(leaf))
                 shrinkfile=os.path.join(root,leaf)
-                # Use Imagemagick identify to get size, extension, type, width and height
+                # Use Imagemagick identify to get size, extension, type, width
+                # and height
                 subcom=["identify", "-precision", "16", "-format"
                         , '%b %e %m %W %H', "-quiet", shrinkfile]
                 if verbose>4:
@@ -196,7 +199,10 @@ def cbr2cbz(
                 except subprocess.CalledProcessError as e:
                     output=e.output
                     if verbose>3:
-                        print("**** ERROR: CalledProcessError: identify {0}".format(leaf))
+                        print(
+                            "**** ERROR: CalledProcessError: identify {0}"
+                            .format(leaf)
+                            )
                         try:
                             output=output.decode("UTF-8","ignore")
                             print ("**** {0}".format(output))
@@ -205,10 +211,12 @@ def cbr2cbz(
                     continue
                 except:
                     if verbose>3:
-                        print("**** ERROR: Could not get image information on {0}"
-                              .format(leaf))
+                        print(
+                            "**** ERROR: Could not get image information on {0}"
+                            .format(leaf)
+                            )
                     continue
-                
+
                 # Extract image stats
                 try:
                     output=output.decode("UTF-8","ignore")
@@ -227,24 +235,29 @@ def cbr2cbz(
                         print(format(sys.exc_info()[0]))
                         print("**** ERROR: Could not extract image sizes")
                     continue
-                
+
                 # Only process understood file types
                 if not (imgtype=='JPEG' or imgtype=='PNG'):
                     continue
-                     
+
                 # Check for a name clash
                 # This would happen with archive files which only differ by extension
                 # eg. file1.png, file1.jpg - when file1.png is shrunk
                 if imgext!='jpg' and os.path.exists(shrinkfile.replace(imgext
                                                     ,"jpg")):
+                    # Don't attempt shrinking this file as we can't
+                    #rename it
                     if verbose>0:
                         print("* WARNING: Shrink filename clash: {0} -> {1}"
                               ,shrinkfile, leaf.replace(imgext,"jpg"))
-                    continue # Don't attempt shrinking this file as we can't rename it
-                
-                # We expect wider pages to be larger so our allowance is based on the aspect ratio (imgar)
-                # Shrink limit is shrinkKB * 1000 * 1.5 * imgar. AR is typically about .65 for single pages - hence 1.5 multiplier
-                # If a page is less than shrinklimit skip shrink attempt (to save time and image quality)
+                    continue
+
+                # We expect wider pages to be larger so our allowance is
+                # based on the aspect ratio (imgar)
+                # Shrink limit is shrinkKB * 1000 * 1.5 * imgar. AR is
+                # typically about .65 for single pages - hence 1.5 multiplier
+                # If a page is less than shrinklimit skip shrink attempt (to
+                # save time and image quality)
                 shrinklimit=(imgar*1.5*shrinkKB*1000)
                 if imgsize>shrinklimit or shrinkGray:
                     if shrinkGray:
@@ -255,9 +268,10 @@ def cbr2cbz(
                             ,shrinkfile+".shrink.jpg"
                             ]
                     else:
-                        subcom=["convert",shrinkfile,"-quality"
-                            , str(shrinkQual), "-resize"
-                            , "x"+str(shrinkHeight)+">"
+                        subcom=[
+                            "convert",shrinkfile,"-quality"
+                            ,str(shrinkQual), "-resize"
+                            ,"x"+str(shrinkHeight)+">"
                             ,shrinkfile+".shrink.jpg"
                             ]
                     if verbose>4:
@@ -268,8 +282,10 @@ def cbr2cbz(
                     except subprocess.CalledProcessError as e:
                         output=e.output
                         if verbose>4:
-                            print("***** ERROR: CalledProcessError: convert {0}"
-                                .format(shrinkfile))
+                            print(
+                                "***** ERROR: CalledProcessError: convert {0}"
+                                .format(shrinkfile)
+                                )
                             try:
                                 output=output.decode("UTF-8","ignore")
                             except:
@@ -281,8 +297,10 @@ def cbr2cbz(
                                 continue
                             except:
                                 if verbose>0:
-                                    print("* Could not clean up shrink file {0}"
-                                        .format(shrinkfile+".shrink.jpg"))
+                                    print(
+                                        "* Could not clean up shrink file {0}"
+                                        .format(shrinkfile+".shrink.jpg")
+                                        )
                                 return(False)
                     except:
                         if verbose>4:
@@ -295,10 +313,12 @@ def cbr2cbz(
                                 continue
                             except:
                                 if verbose>0:
-                                    print("* Could not clean up shrink file {0}"
-                                        .format(shrinkfile+".shrink.jpg"))
+                                    print(
+                                        "* Could not clean up shrink file {0}"
+                                        .format(shrinkfile+".shrink.jpg")
+                                        )
                                 return(False)
-                            
+
                     # Do a check the new file is smaller before replacing
                     oldsize=os.stat(shrinkfile).st_size
                     newsize=os.stat(shrinkfile+".shrink.jpg").st_size
@@ -307,7 +327,7 @@ def cbr2cbz(
                         if imgext=="":
                             newname=shrinkfile+".jpg"
                         else:
-                            newname=re.sub("\."+re.escape(imgext)+"$",".jpg"
+                            newname=re.sub(r"\."+re.escape(imgext)+"$",".jpg"
                                            ,shrinkfile)
                         os.rename(shrinkfile+".shrink.jpg",newname)
                         if verbose>2:
@@ -324,12 +344,12 @@ def cbr2cbz(
                                 , round(newsize/oldsize,2))
                                 )
                         os.unlink(shrinkfile+".shrink.jpg")
-                    
+
     # Collate a list of all files and force sort order into zip
     zipfiles=[] #os.listdir(cbr2cbztemp)
     for root,dirs,files in os.walk(cbr2cbztemp):
         dirs.sort()
-        files.sort()        
+        files.sort()
         if verbose>2:
             print("*** Adding zip directory : {0} - files:{1} "
                 .format(root,len(files)))
@@ -337,8 +357,8 @@ def cbr2cbz(
             addfile=os.path.join(root,leaf)
             zipfiles.append(addfile.replace(cbr2cbztemp+'/',''))
             if verbose>3:
-                print("**** Adding zip list file : {0}".format(leaf))        
-    zipfiles.sort() # To be sure, test 
+                print("**** Adding zip list file : {0}".format(leaf))
+    zipfiles.sort() # To be sure, test
 
     # Compress a new cbz using zipfile
     if verbose>1:
@@ -347,7 +367,8 @@ def cbr2cbz(
         outzip=zipfile.ZipFile(outfile,mode='x',compression=zipfile.ZIP_STORED)
 
     except FileExistsError:
-        # This really shouldn't happen, tested in main() and earlier in this function
+        # This really shouldn't happen, tested in main() and earlier
+        # in this function
         print ("ERROR: File exists: {0}".format(outfile))
         return(False)
     except NameError as e:
@@ -361,10 +382,12 @@ def cbr2cbz(
 
     for zf in zipfiles:
         # Force filenames to be ascii and add to zip
-        try: 
+        try:
             zfarcname=zf
             zfarcname=zfarcname.replace(u'\xa0', ' ')
-            zfarcname=zfarcname.encode('ascii', 'replace').decode('ascii', 'replace')
+            zfarcname=(
+                zfarcname.encode('ascii', 'replace').decode('ascii', 'replace')
+                )
             outzip.write(zf,arcname=zfarcname)
             #outzip.write(zf)
             if verbose>2:
@@ -376,22 +399,22 @@ def cbr2cbz(
             os.remove(outfile)
             return(False)
     outzip.close()
-    return(True)    
-    # Earlier steps should have returned... bug
-    print("ERROR: default return reached in cbr2cbz()")
-    return(False)
-                
+    return(True)
+
 def main():
     description="Converts, copies or shrinks CBR/CBZ archives to stored CBZ"
     epilog="""
-Pattern matching options (-m, -e, --pageexclude) may be used more than once to match against multiple Regular Expressions.
+Pattern matching options (-m, -e, --pageexclude) may be used more than
+once to match against multiple Regular Expressions.
 
-To see examples use "--examples a b" (removing dummy source/destination requirement is a work in progress)
+To see examples use "--examples a b" (removing dummy source/destination
+requirement is a work in progress)
 """
     examples="""
 Examples:
 
-Convert all *.CBR files in directory CBR/ to CBZ format and put the output in /tmp/test
+Convert all *.CBR files in directory CBR/ to CBZ format and put the output
+in /tmp/test
     cbr2cbz.py CBR/ /tmp/test/
 
 Convert CBR and CBZ files in CBR to CBZ format:
@@ -409,13 +432,17 @@ Copy all files to /tmp/test, excluding Thumbs.db
 Convert CBR and CBZ files to low quality format and place in CatConv
     cbr2cbz.py -z --shrink CBR/ CatConv/
 
-Convert CBR and CBZ files to extremely low quality format and place in CatConv
+Convert CBR and CBZ files to extremely low quality format and place
+in CatConv
     cbr2cbz.py -z --shrink --shrinkKB 100 --shrinkQual 10 CBR/ CatConv/
 
 """
-    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,description=description,epilog=epilog)
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter
+        ,description=description,epilog=epilog)
     #parser.usage=usage
-    parser.add_argument("--examples",default=False,action="store_true",help="view this help with additional examples (requires dummy source/destination arguments)")
+    parser.add_argument("--examples",default=False,action="store_true"
+        ,help="view this help with additional examples (requires dummy source/destination arguments)")
     parser.add_argument("-c","--copy",default=False,action="store_true", dest="copy",help="copy non CBR files to destination")
     parser.add_argument("--noconvert",default=False,action="store_true", help="copy CBR/CBZ instead of converting (implies -c)")
     parser.add_argument("-z","--zipforce",default=False,action="store_true", dest="zipforce",help="re-zip CBZ archives (remove wasteful compression)")
@@ -439,38 +466,33 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
     parser.add_argument('source',default=False,help="source file or directory")
     parser.add_argument('dest',default=False, help="destination directory")
     options = parser.parse_args()
-        
+
     if options.verbose>1:
         print ("** Options:",str(options))
-    
+
     if options.examples:
         parser.print_help()
         print(examples)
         exit()
-    
+
     if options.whatif:
         print("Running in test (WHATIF) mode")
-    
+
     # Set the extensions we're looking for for conversion
     if options.zipforce:
-        CBxMatch='\.[Cc][bB][rRzZ]$'
+        CBxMatch=r'\.[Cc][bB][rRzZ]$'
     else:
-        CBxMatch='\.[Cc][bB][rR]$'
-    
+        CBxMatch=r'\.[Cc][bB][rR]$'
+
     if options.noconvert:
         options.copy=True
-        
+
     # Construct lists of RE matches for match, exclude, excludepage
     if options.cs:
         reflags= 0
     else:
         reflags= re.I
-        '''
-    if options.match:
-        matchlist = [re.compile(x.rstrip(),reflags) for x in options.match]
-    else:
-        matchlist=[]
-        '''
+
     matchlist=[]
     if options.matchfile:
         try:
@@ -482,30 +504,33 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
             exit("Error loading match page file")
     if options.match:
         matchlist = matchlist + [re.compile(x.rstrip(),reflags) for x in options.match]
-        '''
-    if options.exclude:
-        excludelist = [re.compile(x.rstrip(),reflags) for x in options.exclude]
-    else:
-        excludelist=[]
-'''
+
     excludelist=[]
     if options.excludefile:
         try:
             f=os.path.abspath(os.path.expanduser(options.excludefile))
             text_file = open(f, "r")
-            excludelist = excludelist + [re.compile(x.rstrip(),reflags) for x in text_file.readlines()]
+            excludelist = (
+                excludelist
+                + [re.compile(x.rstrip(),reflags) for x in text_file.readlines()]
+            )
             text_file.close()
         except:
             exit("Error loading exclude page file")
     if options.exclude:
-        excludelist = excludelist + [re.compile(x.rstrip(),reflags) for x in options.exclude]
-
+        excludelist = (
+            excludelist 
+            + [re.compile(x.rstrip(),reflags) for x in options.exclude]
+        )
     matchpagelist=[]
     if options.matchpagefile:
         try:
             f=os.path.abspath(os.path.expanduser(options.matchpagefile))
             text_file = open(f, "r")
-            matchpagelist = matchpagelist + [re.compile(x.rstrip(),reflags) for x in text_file.readlines()]
+            matchpagelist = (
+                matchpagelist 
+                + [re.compile(x.rstrip(),reflags) for x in text_file.readlines()]
+            )
             text_file.close()
         except:
             exit("Error loading match page file")
@@ -521,7 +546,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
             text_file.close()
         except:
             exit("Error loading exclude page file")
-        
+
     if options.excludepage:
         excludepagelist = excludepagelist + [re.compile(x.rstrip(),reflags) for x in options.excludepage]
 
@@ -531,16 +556,16 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
         print("**** excludelist:",excludelist)
         print("**** matchpagelist:",matchpagelist)
         print("**** excludepagelist:",excludepagelist)
-        
+
     source= os.path.abspath(os.path.expanduser(options.source))
     dest= os.path.abspath(os.path.expanduser(options.dest))
 
     if source == dest:
         exit("Source = dest {0}".format(source))
-        
+
     if not os.path.exists(source):
         exit("Error: Source '{0}' does not exist.".format(source))
-            
+
     if os.path.isfile(source):
         # Change around options to handle single file
         #singlefilematch="^{0}$".format(re.escape(source))
@@ -555,39 +580,39 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
     else:
         #singlefilematch=False
         singlefile=False
-    
+
     if not os.path.isdir(source):
         exit("Error: Source '{0}' is not a file or folder.".format(source))
-    
+
     rescount={x:0 for x in ["copy","convert","excluded","failed","skipped"]}
-    
+
     if options.verbose>1:
         print ("** Process source directory : "+source)
-        
+
     outdir=dest # Default used by FLAT MODE
-    
+
     # recurse with os.walk()
     failedlist=[]
-    
+
     for root,dirs,files in os.walk(source):
-        
+
         # A bit kludgey, but restrict dirs and files to the single file for SFM
         if singlefile:
             del dirs[:]
             files=[singlefile]
-        
+
         dirs.sort()
         files.sort()
-        
+
         if re.match(re.escape(dest),root):
             # Current source dir is under the destination - this could be BAD
             if options.verbose>1:
                 print("** Skipping dir - inside destination: {0}".format(root))
             continue
-        
+
         if options.verbose>1:
             print("** Directory : {0} - subdirs:{1} files:{2} ".format(root,len(dirs),len(files)))
-        
+
         if len(files)>0:
             if not options.flat:
                 outdir=root.replace(source,dest)
@@ -595,13 +620,13 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
                 outdir=outdir.encode('ascii', 'replace').decode('ascii', 'replace')
         else:
             continue
-        
+
         for leaf in files:
             infile= os.path.join(root,leaf)
-            
+
             if options.verbose>2:
                 print ("*** File: {0}".format(leaf))
-                
+
             # Check for match/exclude setting matchflag
             if matchlist :
                 matchflag=False
@@ -611,32 +636,32 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
                         break
             else:
                 matchflag=True
-                
+
             if excludelist and matchflag:
                 for m in excludelist:
                     if re.search(m,infile)!=None:
                         matchflag=False
                         break
-            
+
             if options.verbose > 4:
                 print("***** Matchflag: {0}".format(matchflag))
-                    
+
             if not matchflag:
-                # Excluded 
+                # Excluded
                 if options.verbose>0:
                     print("* ResultExcluded: {0}".format(infile))
                 rescount["excluded"] += 1
                 continue
-            
+
             if options.noconvert:
                 convertflag=False
             else:
                 # Check file extension to decide if we're converting or proceeding to copy
                 convertflag=re.search(CBxMatch,leaf)
-                
+
             if not(convertflag or options.copy):
                 continue
-            
+
             if not os.path.isdir(outdir):
                 if options.whatif:
                     print("WHATIF: Create directory {0}".format(outdir))
@@ -649,14 +674,14 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
             outfile=outfile.replace(u'\xa0', ' ')
             outfile=outfile.encode('ascii', 'replace').decode('ascii', 'replace')
             if convertflag:
-                outfile=re.sub('\.[Cc][bB][rR]$','.cbz',outfile)
+                outfile=re.sub(r'\.[Cc][bB][rR]$','.cbz',outfile)
 
             if os.path.exists(outfile):
                 rescount["skipped"] += 1
                 if options.verbose>0:
                     print("* ResultSkipped: {0}".format(infile))
                 continue
-            
+
             if convertflag:
                 if options.whatif:
                     print("WHATIF: Convert CBx >cbr2cbz({0},{1})".format(infile,outfile))
@@ -675,7 +700,7 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
                             print("* ResultFailed: {0}".format(infile))
                         failedlist.append(infile)
                 continue
-                
+
             # not convertflag so options.copy is set
             if options.verbose>2:
                 print ("***   No CBx extension detected, copy option set")
@@ -699,5 +724,5 @@ Convert CBR and CBZ files to extremely low quality format and place in CatConv
         print("** Failed conversions:")
         for failedfile in failedlist:
             print(failedfile)
-    
+
 main()
