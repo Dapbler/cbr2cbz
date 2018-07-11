@@ -498,12 +498,16 @@ in CatConv
         try:
             f=os.path.abspath(os.path.expanduser(options.matchfile))
             text_file = open(f, "r")
-            matchlist = matchlist + [re.compile(x.rstrip(),reflags) for x in text_file.readlines()]
+            matchlist = matchlist + [
+                re.compile(x.rstrip(),reflags) for x in text_file.readlines()
+                ]
             text_file.close()
         except:
             exit("Error loading match page file")
     if options.match:
-        matchlist = matchlist + [re.compile(x.rstrip(),reflags) for x in options.match]
+        matchlist = matchlist + [
+            re.compile(x.rstrip(),reflags) for x in options.match
+            ]
 
     excludelist=[]
     if options.excludefile:
@@ -535,20 +539,26 @@ in CatConv
         except:
             exit("Error loading match page file")
     if options.matchpage:
-        matchpagelist = matchpagelist + [re.compile(x.rstrip(),reflags) for x in options.matchpage]
+        matchpagelist = matchpagelist + [
+            re.compile(x.rstrip(),reflags) for x in options.matchpage
+            ]
 
     excludepagelist=[]
     if options.excludepagefile:
         try:
             f=os.path.abspath(os.path.expanduser(options.excludepagefile))
             text_file = open(f, "r")
-            excludepagelist = excludepagelist + [re.compile(x.rstrip(),reflags) for x in text_file.readlines()]
+            excludepagelist = excludepagelist + [
+                re.compile(x.rstrip(),reflags) for x in text_file.readlines()
+                ]
             text_file.close()
         except:
             exit("Error loading exclude page file")
 
     if options.excludepage:
-        excludepagelist = excludepagelist + [re.compile(x.rstrip(),reflags) for x in options.excludepage]
+        excludepagelist = excludepagelist + [
+            re.compile(x.rstrip(),reflags) for x in options.excludepage
+            ]
 
     if options.verbose>3:
         print ("**** Options:",str(options))
@@ -611,7 +621,10 @@ in CatConv
             continue
 
         if options.verbose>1:
-            print("** Directory : {0} - subdirs:{1} files:{2} ".format(root,len(dirs),len(files)))
+            print(
+                "** Directory : {0} - subdirs:{1} files:{2} "
+                .format(root,len(dirs),len(files))
+            )
 
         if len(files)>0:
             if not options.flat:
@@ -656,7 +669,8 @@ in CatConv
             if options.noconvert:
                 convertflag=False
             else:
-                # Check file extension to decide if we're converting or proceeding to copy
+                # Check file extension to decide if we're converting or
+                #  proceeding to copy
                 convertflag=re.search(CBxMatch,leaf)
 
             if not(convertflag or options.copy):
@@ -688,12 +702,32 @@ in CatConv
                 else:
                     if options.verbose>0:
                         print ("* Converting {0}".format(infile))
-                    if(cbr2cbz(infile,outfile,verbose=options.verbose,matchpagelist=matchpagelist,excludepagelist=excludepagelist,shrink=options.shrink,shrinkGray=options.shrinkGray,shrinkKB=options.shrinkKB,shrinkQual=options.shrinkQual,shrinkHeight=options.shrinkHeight,whatif=options.whatif)):
+                    if(cbr2cbz(
+                            infile,outfile,verbose=options.verbose
+                            ,matchpagelist=matchpagelist
+                            ,excludepagelist=excludepagelist
+                            ,shrink=options.shrink
+                            ,shrinkGray=options.shrinkGray
+                            ,shrinkKB=options.shrinkKB
+                            ,shrinkQual=options.shrinkQual
+                            ,shrinkHeight=options.shrinkHeight
+                            ,whatif=options.whatif
+                            )
+                        ):
+                        # cbr2cbz() returned true - SUCCESS!
                         rescount['convert'] += 1
                         if options.verbose>0:
                             oldsize=os.stat(infile).st_size
                             newsize=os.stat(outfile).st_size
-                            print("* ResultConvert: {0} {1}/{2} MB {3}".format(round(newsize/oldsize,3),round(newsize/1000000,1),round(oldsize/1000000,1),infile))
+                            print(
+                                "* ResultConvert: {0} {1}/{2} MB {3}"
+                                .format(
+                                    round(newsize/oldsize,3)
+                                    ,round(newsize/1000000,1)
+                                    ,round(oldsize/1000000,1)
+                                    ,infile
+                                    )
+                                )
                     else:
                         rescount['failed'] += 1
                         if options.verbose>0:
