@@ -1,30 +1,43 @@
 # cbr2cbz
+
 Python script that converts compressed CBR and CBZ comic archives to stored CBZ
 
-Requires: Python 3.2+, unrar utility
+**Requires:** Python 3.2+, unrar utility
 
-Optional requirements: Imagemagick identify and convert programs for --shrink
+**Optional requirements:** Imagemagick identify and convert programs for --shrink
 
-Comicrack for Android recommends CBZ archives without compression (the images in archives are typically compressed anyway, so using zip/rar compression doesn't save much space and uses significant memory/power on mobile devices).
-cbr2cbz.py will take a source folder of CBR files and convert to CBZ (output goes to a new folder).
+**OS:** Linux (and probably Mac OS X).
 
-Note: Output file names are converted to ANSI. Let me know if you need unicode support.
+Bug with an issue if you want Windows and want to do some testing.
 
-https://github.com/Dapbler/cbr2cbz
+## Description
 
-Currently GNU/Linux, but uses mostly OS agnostic modules so should be relatively easy to convert to Windows (subprocess commands will need modification).
+To reduce decompression space and power requirements ComicRack for Android
+recommends CBZ archives without compression.
+
+Images in archives are typically compressed, so using zip/rar compression
+saves as little as 1-2%.
+
+cbr2cbz will take a source folder of CBR files and convert to CBZ
+(output goes to a new folder).
+
+Note: Output file names are converted to ANSI. Let me know if you need unicode
+support on the [Github page]: https://github.com/Dapbler/cbr2cbz
+
+Currently GNU/Linux, but uses mostly OS agnostic modules so should be
+relatively easy to convert to Windows (subprocess commands will need modification).
 
 Additional optional features include:
+
 * Convert existing CBZ files to uncompressed CBZ
 * Copy non CBR/CBZ files
 * Flat mode - output all files in the top level of the destination folder
 * Pattern matching to decide what files to copy/convert (multiple pattern optons may be set and all are checked)
 * Including/exclude archived page names matching regular expressions (eg. include pages 001-009 for a test sample)
-* Shrinking of page (lossy conversion) for non-archival use on devices with limited storage/memory
+* Shrinking of page (lossy conversion) for non-archival use on devices with limited storage/memory (often reducing size by 85%)
 * Shrinking heuristics and compression settings now exposed via --shrinkXXXX settings
 
 <pre>
-
 usage: cbr2cbz.py [-h] [--examples] [-c] [--noconvert] [-z] [--shrink]
                   [--shrinkKB SHRINKKB] [--shrinkQual SHRINKQUAL]
                   [--shrinkHeight SHRINKHEIGHT] [-f] [-m MATCH] [-e EXCLUDE]
@@ -81,24 +94,23 @@ To see examples use "--examples a b" (removing dummy source/destination requirem
 Examples:
 
 Convert all *.CBR files in directory CBR/ to CBZ format and put the output in /tmp/test
-	cbr2cbz.py CBR/ /tmp/test/
+    cbr2cbz.py CBR/ /tmp/test/
 
 Convert CBR and CBZ files in CBR to CBZ format:
-	cbr2cbz.py -z CBR/ /tmp/test/
+    cbr2cbz.py -z CBR/ /tmp/test/
 
 Copy files in CBR/, converting CBR files:
-	cbr2cbz.py -c CBR/ /tmp/test/
+    cbr2cbz.py -c CBR/ /tmp/test/
 
 Copy all Cat Conversation files to /tmp/test, without creating subdirectories
-	cbr2cbz.py --noconvert -f -m "Cat.*Conv" CBR/ /tmp/test
+    cbr2cbz.py --noconvert -f -m "Cat.*Conv" CBR/ /tmp/test
 
 Copy all files to /tmp/test, excluding Thumbs.db
-	cbr2cbz.py --noconvert -e "Thumbs.db" CBR/ /tmp/test
+    cbr2cbz.py --noconvert -e "Thumbs.db" CBR/ /tmp/test
 
 Convert CBR and CBZ files to low quality format and place in CatConv
-	cbr2cbz.py -z --shrink CBR/ CatConv/
+    cbr2cbz.py -z --shrink CBR/ CatConv/
 
 Convert CBR and CBZ files to extremely low quality format and place in CatConv
-	cbr2cbz.py -z --shrink --shrinkKB 100 --shrinkQual 10 CBR/ CatConv/
-
+    cbr2cbz.py -z --shrink --shrinkKB 100 --shrinkQual 10 CBR/ CatConv/
 </pre>
