@@ -441,28 +441,69 @@ in CatConv
         formatter_class=argparse.RawDescriptionHelpFormatter
         ,description=description,epilog=epilog)
     #parser.usage=usage
-    parser.add_argument("--examples",default=False,action="store_true"
+    parser.add_argument(
+        "--examples",default=False,action="store_true"
         ,help="view this help with additional examples (requires dummy source/destination arguments)")
-    parser.add_argument("-c","--copy",default=False,action="store_true", dest="copy",help="copy non CBR files to destination")
-    parser.add_argument("--noconvert",default=False,action="store_true", help="copy CBR/CBZ instead of converting (implies -c)")
-    parser.add_argument("-z","--zipforce",default=False,action="store_true", dest="zipforce",help="re-zip CBZ archives (remove wasteful compression)")
-    parser.add_argument("--shrink",default=False,action="store_true", dest="shrink",help="[ WARNING - LOSSY ] aggressively shrink large page files with JPEG")
-    parser.add_argument("--shrinkGray",default=False,action="store_true",help="with --shrink convert all pages to grayscale")
-    parser.add_argument("--shrinkKB",default=300, type=int,action="store",help="with --shrink process pages larger than this many KB (default = 300)")
-    parser.add_argument("--shrinkQual",default=40, type=int,action="store",help="with --shrink use custom JPEG quality (default = 40)")
-    parser.add_argument("--shrinkHeight",default=1500, type=int,action="store",help="with --shrink sets maximum pixel height of page (default = 1500)")
-    parser.add_argument("-f","--flat",default=False,action="store_true", dest="flat",help="Flat mode - do not create output subdirectories")
-    parser.add_argument("-m","--match",default=[],action="append", dest="match",help="only process paths matching Regular Expression")
-    parser.add_argument("--matchfile",default=False,action="store", help="process source files matching RE in file")
-    parser.add_argument("-e","--exclude",default=[],action="append", dest="exclude",help="exclude source files matching Regular Expression")
-    parser.add_argument("--excludefile",default=False,action="store", help="exclude source files matching RE in file")
-    parser.add_argument("--matchpage",default=[],action="append", dest="matchpage",help="include only page matching Regular Expression")
-    parser.add_argument("--matchpagefile",default=False,action="store", help="include pages matching RE in file")
-    parser.add_argument("--excludepage",default=[],action="append", dest="excludepage",help="exclude page matching Regular Expression")
-    parser.add_argument("--excludepagefile",default=False,action="store", help="exclude pages matching RE in file")
-    parser.add_argument("--cs","--case-sensitive",default=False,action="store_true", dest="cs",help="use case sensitive RE matching")
-    parser.add_argument("-v","--verbose",default=0,action="count", dest="verbose",help="print additional information (multiple accepted eg. -vvv)")
-    parser.add_argument("-w","--whatif",default=False,action="store_true", dest="whatif",help="test mode - no action")
+    parser.add_argument(
+        "-c","--copy",default=False,action="store_true", dest="copy"
+        ,help="copy non CBR files to destination")
+    parser.add_argument(
+        "--noconvert",default=False,action="store_true"
+        , help="copy CBR/CBZ instead of converting (implies -c)")
+    parser.add_argument(
+        "-z","--zipforce",default=False,action="store_true", dest="zipforce"
+        ,help="re-zip CBZ archives (remove wasteful compression)")
+    parser.add_argument(
+        "--shrink",default=False,action="store_true", dest="shrink"
+        ,help="[ WARNING - LOSSY ] aggressively shrink large page files with JPEG")
+    parser.add_argument(
+        "--shrinkGray",default=False,action="store_true"
+        ,help="with --shrink convert all pages to grayscale")
+    parser.add_argument(
+        "--shrinkKB",default=300, type=int,action="store"
+        ,help="with --shrink process pages larger than this many KB (default = 300)")
+    parser.add_argument(
+        "--shrinkQual",default=40, type=int,action="store"
+        ,help="with --shrink use custom JPEG quality (default = 40)")
+    parser.add_argument(
+        "--shrinkHeight",default=1500, type=int,action="store"
+        ,help="with --shrink sets maximum pixel height of page (default = 1500)")
+    parser.add_argument(
+        "-f","--flat",default=False,action="store_true", dest="flat"
+        ,help="Flat mode - do not create output subdirectories")
+    parser.add_argument(
+        "-m","--match",default=[],action="append", dest="match"
+        ,help="only process paths matching Regular Expression")
+    parser.add_argument(
+        "--matchfile",default=False,action="store"
+        , help="process source files matching RE in file")
+    parser.add_argument(
+        "-e","--exclude",default=[],action="append", dest="exclude"
+        ,help="exclude source files matching Regular Expression")
+    parser.add_argument(
+        "--excludefile",default=False,action="store"
+        , help="exclude source files matching RE in file")
+    parser.add_argument(
+        "--matchpage",default=[],action="append", dest="matchpage"
+        ,help="include only page matching Regular Expression")
+    parser.add_argument(
+        "--matchpagefile",default=False,action="store"
+        , help="include pages matching RE in file")
+    parser.add_argument(
+        "--excludepage",default=[],action="append", dest="excludepage"
+        ,help="exclude page matching Regular Expression")
+    parser.add_argument(
+        "--excludepagefile",default=False,action="store"
+        , help="exclude pages matching RE in file")
+    parser.add_argument(
+        "--cs","--case-sensitive",default=False,action="store_true", dest="cs"
+        ,help="use case sensitive RE matching")
+    parser.add_argument(
+        "-v","--verbose",default=0,action="count", dest="verbose"
+        ,help="print additional information (multiple accepted eg. -vvv)")
+    parser.add_argument(
+        "-w","--whatif",default=False,action="store_true", dest="whatif"
+        ,help="test mode - no action")
     parser.add_argument('source',default=False,help="source file or directory")
     parser.add_argument('dest',default=False, help="destination directory")
     options = parser.parse_args()
@@ -523,7 +564,7 @@ in CatConv
             exit("Error loading exclude page file")
     if options.exclude:
         excludelist = (
-            excludelist 
+            excludelist
             + [re.compile(x.rstrip(),reflags) for x in options.exclude]
         )
     matchpagelist=[]
@@ -532,7 +573,7 @@ in CatConv
             f=os.path.abspath(os.path.expanduser(options.matchpagefile))
             text_file = open(f, "r")
             matchpagelist = (
-                matchpagelist 
+                matchpagelist
                 + [re.compile(x.rstrip(),reflags) for x in text_file.readlines()]
             )
             text_file.close()
