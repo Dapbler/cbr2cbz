@@ -190,7 +190,7 @@ def cbr2cbz(
                 shrinkfile=os.path.join(root,leaf)
                 # Use Imagemagick identify to get size, extension, type, width
                 # and height
-                subcom=["identify", "-precision", "16", "-format"
+                subcom=["magick","identify", "-precision", "16", "-format"
                         , '%b %e %m %W %H', "-quiet", shrinkfile]
                 if verbose>4:
                     print ("***** {0}".format(subcom))
@@ -262,14 +262,14 @@ def cbr2cbz(
                 if imgsize>shrinklimit or shrinkGray:
                     if shrinkGray:
                         subcom=[
-                            "convert",shrinkfile,"-quality"
+                            "magick","convert",shrinkfile,"-quality"
                             , str(shrinkQual),"-grayscale","Rec601Luma"
                             , "-resize", "x"+str(shrinkHeight)+">"
                             ,shrinkfile+".shrink.jpg"
                             ]
                     else:
                         subcom=[
-                            "convert",shrinkfile,"-quality"
+                            "magick","convert",shrinkfile,"-quality"
                             ,str(shrinkQual), "-resize"
                             ,"x"+str(shrinkHeight)+">"
                             ,shrinkfile+".shrink.jpg"
