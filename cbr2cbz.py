@@ -52,7 +52,8 @@ def cbr2cbzclean(create=True,delete=False):
 # CBR to CBZ
 # Returns True if managed to create .CBZ and False on error
 def cbr2cbz(
-        infile, outfile,verbose=0,matchpagelist=[],excludepagelist=[]
+        infile, outfile,verbose=0,keepbroken=False
+        ,matchpagelist=[],excludepagelist=[]
         ,shrink=False,shrinkKB=300,shrinkGray=False,shrinkQual=40
         ,shrinkHeight=1500,whatif=False
         ):
@@ -85,6 +86,7 @@ def cbr2cbz(
     if not os.path.isdir(os.path.dirname(outfile)):
         os.makedirs(os.path.dirname(outfile))
 
+    brokenflag=False # Flag for error on extract (for --keepbroken)
     # New - use is_zipfile. We trust zipfile more than the external unrar
     if zipfile.is_zipfile(infile):
         # Now using zipfile - precondition: is_zipfile() is True
@@ -120,7 +122,10 @@ def cbr2cbz(
         # Assume it's a RAR and launch subprocess unrar
         if verbose>1:
             print ("** unrar {0}".format(infile))
-        subcom=["unrar", "x", infile, cbr2cbztemp]
+        if keepbroken:
+            subcom=["unrar", "x", "-kb", infile, cbr2cbztemp]
+        else:
+            subcom=["unrar", "x", infile, cbr2cbztemp]
         if verbose>3:
             print ("** {0}".format(subcom))
         try:
@@ -135,7 +140,11 @@ def cbr2cbz(
                 except:
                     print(format(sys.exc_info()[0]))
                 print ("* {0}".format(output))
-            return(False) # Failed via unrar subprocess error
+            if keepbroken:
+                brokenflag=True
+                print("* KEEPBROKEN: Continue to zip content {0}".format(infile))
+            else:
+                return(False) # Failed via unrar subprocess error
         except:
             print(format(sys.exc_info()[0]))
             print("No process output available")
@@ -186,7 +195,8 @@ def cbr2cbz(
             files.sort()
             for leaf in files:
                 if verbose>3:
-                    print ("*** Assessing {0}".format(leaf))
+                    print ("*** Assessing {0}".format(leaf.encode(
+                        'ascii', 'replace').decode('ascii', 'replace')))
                 shrinkfile=os.path.join(root,leaf)
                 # Use Imagemagick identify to get size, extension, type, width
                 # and height
@@ -333,14 +343,18 @@ def cbr2cbz(
                         if verbose>2:
                             print(
                                 "*** Shrank    {3} {1}/{2} : {0}"
-                                .format(leaf, newsize, oldsize
+                                .format(leaf.encode('ascii', 'replace'
+                                ).decode('ascii', 'replace')
+                                , newsize, oldsize
                                 , round(newsize/oldsize,2))
                                 )
                     else:
                         if verbose>2:
                             print(
                                 "*** No shrink {3} {1}/{2} : {0}"
-                                .format(leaf, newsize, oldsize
+                                .format(leaf.encode('ascii', 'replace'
+                                ).decode('ascii', 'replace')
+                                , newsize, oldsize
                                 , round(newsize/oldsize,2))
                                 )
                         os.unlink(shrinkfile+".shrink.jpg")
@@ -357,8 +371,19 @@ def cbr2cbz(
             addfile=os.path.join(root,leaf)
             zipfiles.append(addfile.replace(cbr2cbztemp+'/',''))
             if verbose>3:
-                print("**** Adding zip list file : {0}".format(leaf))
+                print("**** Adding zip list file : {0}".format(
+                    leaf.encode('ascii', 'replace').decode('ascii', 'replace')))
     zipfiles.sort() # To be sure, test
+
+    if brokenflag:
+        # Prefix filename with broken-
+        outfile=os.path.join(
+            os.path.dirname(outfile)
+            , "broken-"+os.path.basename(outfile)
+        )
+        if os.path.exists(outfile):
+            print("Output file {0} exists".format(outfile))
+            return(False)
 
     # Compress a new cbz using zipfile
     if verbose>1:
@@ -391,15 +416,26 @@ def cbr2cbz(
             outzip.write(zf,arcname=zfarcname)
             #outzip.write(zf)
             if verbose>2:
-                print("*** Adding: {0}".format(zf))
+                print(
+                    "*** Adding: {0}".format(zf).encode(
+                        'ascii', 'replace').decode('ascii', 'replace')
+                )
         except:
-            print("Error adding file:{0}".format(zf))
+            print(
+                "Error adding file:{0}".format(zf).encode(
+                    'ascii', 'replace').decode('ascii', 'replace')
+            )
             print(sys.exc_info()[0])
             outzip.close()
             os.remove(outfile)
             return(False)
     outzip.close()
-    return(True)
+    if brokenflag:
+        # We've forced zip creation with 
+        # --keepbroken. Report as failed for user review
+        return(False)
+    else:
+        return(True)
 
 def main():
     description="Converts, copies or shrinks CBR/CBZ archives to stored CBZ"
@@ -453,6 +489,9 @@ in CatConv
     parser.add_argument(
         "-z","--zipforce",default=False,action="store_true", dest="zipforce"
         ,help="re-zip CBZ archives (remove wasteful compression)")
+    parser.add_argument(
+        "--kb","--keep-broken",default=False,action="store_true", dest="keepbroken"
+        ,help="[EXPERIMENTAL] attempt to convert corrupt (RAR) archives")
     parser.add_argument(
         "--shrink",default=False,action="store_true", dest="shrink"
         ,help="[ WARNING - LOSSY ] aggressively shrink large page files with JPEG")
@@ -745,6 +784,7 @@ in CatConv
                         print ("* Converting {0}".format(infile))
                     if(cbr2cbz(
                             infile,outfile,verbose=options.verbose
+                            ,keepbroken=options.keepbroken
                             ,matchpagelist=matchpagelist
                             ,excludepagelist=excludepagelist
                             ,shrink=options.shrink
