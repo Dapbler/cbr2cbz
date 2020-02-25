@@ -86,6 +86,10 @@ optional arguments:
   -v, --verbose         print additional information (multiple accepted eg.
                         -vvv)
   -w, --whatif          test mode - no action
+  --imversion IMVERSION
+                        set ImageMagick version command format (default = 6)
+  --tempdir TEMPDIR     use TEMPDIR as temporary file directory
+
 
 Pattern matching options (-m, -e, --pageexclude) may be used more than once to match against multiple Regular Expressions.
 

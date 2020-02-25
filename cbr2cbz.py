@@ -1,8 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 cbr2cbz.py - converts CBR comic book files (RAR) to CBZ (as uncompressed zip)
 
-Requires system commands: unrar, zip
+Requires system commands: unrar
 """
 
 import os
@@ -16,10 +16,14 @@ import zipfile
 
 # Kludgy global for the temp folder (used by all the functions in one way or other)
 # New - use /tmp (which is in RAM/Swap tmpfs) for speed and reduced SSD/drive wear
+# Overridden by --tempdir option
 cbr2cbztemp = os.path.abspath(
     os.path.expanduser(
     "/tmp/cbr2cbztemp-u{0}/p{1}".format(os.getuid(),os.getpid()))
     )
+
+# Default ImageMagick version
+imversion = 6
 
 def cbr2cbzclean(create=True,delete=False):
     # Creates (if necessary) and cleans the temporary folder
@@ -200,8 +204,14 @@ def cbr2cbz(
                 shrinkfile=os.path.join(root,leaf)
                 # Use Imagemagick identify to get size, extension, type, width
                 # and height
-                subcom=["magick","identify", "-precision", "16", "-format"
-                        , '%b %e %m %W %H', "-quiet", shrinkfile]
+                if imversion == 7:
+                    # IM7 ?
+                    subcom=["magick","identify", "-precision", "16", "-format"
+                            , '%b %e %m %W %H', "-quiet", shrinkfile]
+                else:
+                    # Ubuntu IM6
+                    subcom=["identify", "-precision", "16", "-format"
+                            , '%b %e %m %W %H', "-quiet", shrinkfile]
                 if verbose>4:
                     print ("***** {0}".format(subcom))
                 try:
@@ -231,7 +241,9 @@ def cbr2cbz(
                 try:
                     output=output.decode("UTF-8","ignore")
                     (imgsize,imgext,imgtype,imgx,imgy)=output.split(" ")
-                    imgsize=int(imgsize.replace("B",""))
+                    # Bug in identify-im6 (on Ubuntu 18.04) not respecting precision?
+                    #imgsize=int(imgsize.replace("B",""))
+                    imgsize=os.stat(shrinkfile).st_size
                     imgx=int(imgx)
                     imgy=int(imgy)
                     # imgar is the aspect ratio
@@ -271,19 +283,39 @@ def cbr2cbz(
                 shrinklimit=(imgar*1.5*shrinkKB*1000)
                 if imgsize>shrinklimit or shrinkGray:
                     if shrinkGray:
-                        subcom=[
-                            "magick","convert",shrinkfile,"-quality"
-                            , str(shrinkQual),"-grayscale","Rec601Luma"
-                            , "-resize", "x"+str(shrinkHeight)+">"
-                            ,shrinkfile+".shrink.jpg"
-                            ]
+                        if imversion == 7:
+                            # IM7 ?
+                            subcom=[
+                                "magick","convert",shrinkfile,"-quality"
+                                , str(shrinkQual),"-grayscale","Rec601Luma"
+                                , "-resize", "x"+str(shrinkHeight)+">"
+                                ,shrinkfile+".shrink.jpg"
+                                ]
+                        else:
+                            # Ubuntu IM6
+                            subcom=[
+                                "convert",shrinkfile,"-quality"
+                                , str(shrinkQual),"-grayscale","Rec601Luma"
+                                , "-resize", "x"+str(shrinkHeight)+">"
+                                ,shrinkfile+".shrink.jpg"
+                                ]
                     else:
-                        subcom=[
-                            "magick","convert",shrinkfile,"-quality"
-                            ,str(shrinkQual), "-resize"
-                            ,"x"+str(shrinkHeight)+">"
-                            ,shrinkfile+".shrink.jpg"
-                            ]
+                        if imversion == 7:
+                            # IM7?
+                            subcom=[
+                                "magick","convert",shrinkfile,"-quality"
+                                ,str(shrinkQual), "-resize"
+                                ,"x"+str(shrinkHeight)+">"
+                                ,shrinkfile+".shrink.jpg"
+                                ]
+                        else:
+                            # Ubuntu IM6
+                            subcom=[
+                                "convert",shrinkfile,"-quality"
+                                ,str(shrinkQual), "-resize"
+                                ,"x"+str(shrinkHeight)+">"
+                                ,shrinkfile+".shrink.jpg"
+                                ]
                     if verbose>4:
                         print ("***** {0}".format(subcom))
                     try:
@@ -543,6 +575,12 @@ in CatConv
     parser.add_argument(
         "-w","--whatif",default=False,action="store_true", dest="whatif"
         ,help="test mode - no action")
+    parser.add_argument(
+        "--imversion",default=False,type=int,action="store"
+        , help="set ImageMagick version command format (default = 6)")
+    parser.add_argument(
+        "--tempdir",default=False,action="store"
+        , help="use TEMPDIR as temporary file directory")
     parser.add_argument('source',default=False,help="source file or directory")
     parser.add_argument('dest',default=False, help="destination directory")
     options = parser.parse_args()
@@ -639,6 +677,14 @@ in CatConv
         excludepagelist = excludepagelist + [
             re.compile(x.rstrip(),reflags) for x in options.excludepage
             ]
+    
+    if options.imversion:
+        global imversion
+        imversion = options.imversion
+
+    if options.tempdir:
+        global cbr2cbztemp
+        cbr2cbztemp = os.path.abspath(os.path.expanduser(options.tempdir))
 
     if options.verbose>3:
         print ("**** Options:",str(options))
