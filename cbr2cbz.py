@@ -701,7 +701,7 @@ in CatConv
             print("Using temporary directory: {0}".format(cbr2cbztemp))
             break
         else:
-            print("tempdir candidate doesn't exists: {0}".format(tempc2))
+            print("tempdir candidate doesn't exists: {0}".format(tempc))
 
 
     if options.verbose>3:
