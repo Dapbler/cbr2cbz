@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 """
 cbr2cbz.py - converts CBR comic book files (RAR) to CBZ (as uncompressed zip)
 
