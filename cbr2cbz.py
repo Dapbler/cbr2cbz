@@ -682,9 +682,28 @@ in CatConv
         global imversion
         imversion = options.imversion
 
+    # List of candidate directories to put tempdir in, in order of preference
+    tempcandidates = [
+        "/run/user/{0}/".format(os.getuid()),
+        "/tmp/",
+        "~/"
+    ]
+
+    # Put a user specified tempdir in preference spot one
     if options.tempdir:
-        global cbr2cbztemp
-        cbr2cbztemp = os.path.abspath(os.path.expanduser(options.tempdir))
+        tempcandidates.insert(0, os.path.abspath(os.path.expanduser(options.tempdir)))
+
+    # Find the first existing tempdir host and set cbr2cbztemp
+    global cbr2cbztemp
+    for tempc in tempcandidates:
+        cbr2cbztemp = os.path.abspath( os.path.expanduser(tempc) )
+        if os.path.isdir(cbr2cbztemp):
+            cbr2cbztemp="{0}/cbr2cbz.{1}".format(cbr2cbztemp,os.getpid())
+            print("Using temporary directory: {0}".format(cbr2cbztemp))
+            break
+        else:
+            print("tempdir candidate doesn't exists: {0}".format(cbr2cbztemp))  
+
 
     if options.verbose>3:
         print ("**** Options:",str(options))
