@@ -696,13 +696,12 @@ in CatConv
     # Find the first existing tempdir host and set cbr2cbztemp
     global cbr2cbztemp
     for tempc in tempcandidates:
-        cbr2cbztemp = os.path.abspath( os.path.expanduser(tempc) )
-        if os.path.isdir(cbr2cbztemp):
-            cbr2cbztemp="{0}/cbr2cbz.{1}".format(cbr2cbztemp,os.getpid())
+        if os.path.isdir(os.path.abspath( os.path.expanduser(tempc))):
+            cbr2cbztemp="{0}/cbr2cbz.{1}".format(os.path.abspath( os.path.expanduser(tempc)),os.getpid())
             print("Using temporary directory: {0}".format(cbr2cbztemp))
             break
         else:
-            print("tempdir candidate doesn't exists: {0}".format(cbr2cbztemp))  
+            print("tempdir candidate doesn't exists: {0}".format(tempc2))
 
 
     if options.verbose>3:
