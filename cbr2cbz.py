@@ -83,7 +83,7 @@ def cbr2cbz(
     # Changing to temp directory is necessary to keep zip file paths short
     os.chdir(cbr2cbztemp)
     if (os.getcwd() != cbr2cbztemp):
-        exit("Could not change to temp directory {0}".format(cbr2cbztemp))
+        exit("Could not change to temp directory {0}, current directory: {1}".format(cbr2cbztemp,os.getcwd()))
 
     # Output folder should exist (created in main()) but leave check
     # here anyway
