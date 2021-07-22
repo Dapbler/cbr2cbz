@@ -59,6 +59,7 @@ optional arguments:
   -c, --copy            copy non CBR files to destination
   --noconvert           copy CBR/CBZ instead of converting (implies -c)
   -z, --zipforce        re-zip CBZ archives (remove wasteful compression)
+  --kb, --keep-broken   [EXPERIMENTAL] attempt to convert corrupt (RAR) archives
   --shrink              [ WARNING - LOSSY ] aggressively shrink large page
                         files with JPEG
   --shrinkKB SHRINKKB   with --shrink process pages larger than this many KB
