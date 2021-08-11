@@ -82,7 +82,7 @@ def cbr2cbz(
 
     # Changing to temp directory is necessary to keep zip file paths short
     os.chdir(cbr2cbztemp)
-    if (os.getcwd() != cbr2cbztemp):
+    if (os.path.abspath(os.getcwd()) != os.path.abspath(cbr2cbztemp)):
         exit("Could not change to temp directory {0}, current directory: {1}".format(cbr2cbztemp,os.getcwd()))
 
     # Output folder should exist (created in main()) but leave check
@@ -697,7 +697,7 @@ in CatConv
     global cbr2cbztemp
     for tempc in tempcandidates:
         if os.path.isdir(os.path.abspath( os.path.expanduser(tempc))):
-            cbr2cbztemp="{0}/cbr2cbz.{1}".format(os.path.abspath( os.path.expanduser(tempc)),os.getpid())
+            cbr2cbztemp="{0}/cbr2cbz.u{1}-p{2}".format(os.path.abspath( os.path.expanduser(tempc)),os.getuid(),os.getpid())
             print("Using temporary directory: {0}".format(cbr2cbztemp))
             break
         else:
