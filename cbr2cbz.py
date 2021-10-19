@@ -418,10 +418,17 @@ def cbr2cbz(
             return(False)
 
     # Compress a new cbz using zipfile
+
+    # For Python < 3.5 use append mode (should be safe), use x mode for >3.5
+    if ((sys.version_info[0]==3) and (sys.version_info[1]<5)):
+        zipmode='a'
+    else:
+        zipmode='x'
+    
     if verbose>1:
-        print ("** Creating with zipfile: {0}".format(outfile))
+        print ("** Creating with zipfile: {0}, mode '{1}'".format(outfile,zipmode))
     try:
-        outzip=zipfile.ZipFile(outfile,mode='x',compression=zipfile.ZIP_STORED)
+        outzip=zipfile.ZipFile(outfile,mode=zipmode,compression=zipfile.ZIP_STORED)
 
     except FileExistsError:
         # This really shouldn't happen, tested in main() and earlier
@@ -470,6 +477,9 @@ def cbr2cbz(
         return(True)
 
 def main():
+    if (sys.version_info[0]<3):
+        exit("Error: Python version {0} is not supported. Please use version 3 or greater.".format(sys.version_info[0]))
+
     description="Converts, copies or shrinks CBR/CBZ archives to stored CBZ"
     epilog="""
 Pattern matching options (-m, -e, --pageexclude) may be used more than
@@ -505,6 +515,7 @@ in CatConv
     cbr2cbz.py -z --shrink --shrinkKB 100 --shrinkQual 10 CBR/ CatConv/
 
 """
+    
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter
         ,description=description,epilog=epilog)
