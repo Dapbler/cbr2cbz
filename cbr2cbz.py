@@ -428,7 +428,7 @@ def cbr2cbz(
     if verbose>1:
         print ("** Creating with zipfile: {0}, mode '{1}'".format(outfile,zipmode))
     try:
-        outzip=zipfile.ZipFile(outfile,mode=zipmode,compression=zipfile.ZIP_STORED)
+        outzip=zipfile.ZipFile(outfile,mode=zipmode,compression=zipfile.ZIP_STORED,strict_timestamps=False)
 
     except FileExistsError:
         # This really shouldn't happen, tested in main() and earlier
